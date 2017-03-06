@@ -57,7 +57,7 @@ namespace {
 }
 
 namespace nigiri {
-    
+
     bool ForeignRuntimeManager::isCategoryAvailable(const std::string &name) {
         auto search = categoryMap.find(name);
         if(search == categoryMap.end()){
@@ -95,4 +95,3 @@ namespace nigiri {
         return std::to_string(hash);
     }
 }
-

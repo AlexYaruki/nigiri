@@ -41,8 +41,9 @@ namespace nigiri {
     public:
         virtual ~FR_Object() = default;
         virtual FR_Id getRuntimeId() = 0;
-
+        virtual std::shared_ptr<FR_Type> getType() = 0;
         virtual std::experimental::optional<int64_t> castToInt64() = 0;
+        virtual std::experimental::optional<double> castToDouble() = 0;
     };
 
     class NIGIRI_EXPORT FR_Method {
@@ -72,6 +73,8 @@ namespace nigiri {
         virtual std::shared_ptr<FR_Object> call(std::shared_ptr<FR_Object> targetObject,
                                                 std::shared_ptr<FR_Method> method,
                                                 const std::vector<std::shared_ptr<FR_Object>>& parameters) = 0;
+
+        virtual std::shared_ptr<FR_Object> wrapPrimitive(double d) = 0;
     };
 
     class NIGIRI_EXPORT ForeignRuntimeLoader {
