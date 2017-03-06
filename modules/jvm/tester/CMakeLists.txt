@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.5)
+project(nigiri_jvm_tester)
+set(CMAKE_CXX_FLAGS -std=c++1z)
+set(SRCS main.cpp)
+include_directories(../../../include/generic)
+add_executable(${PROJECT_NAME} ${SRCS})
+target_link_libraries(${PROJECT_NAME} nigiri)
