@@ -33,6 +33,7 @@ int main() {
     auto in1 = jvm->wrapPrimitive(1L);
     auto in2 = jvm->wrapPrimitive(3L);
     auto out = jvm->call(type_math,method_max_long,{in1,in2});
+    std::cout << "Type: " << type_math->getName() << std::endl;
     std::cout << "Out - Type: " << out->getType()->getName() << std::endl;
     std::cout << "Out: " << out->castToInt64().value() << std::endl;
 

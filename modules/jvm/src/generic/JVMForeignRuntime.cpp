@@ -226,13 +226,15 @@ namespace nigiri
             }
 
 			std::shared_ptr<JVMOpParams_TypeLookup> params = std::make_shared<JVMOpParams_TypeLookup>();
-            std::string javaType = name;
-            std::replace(javaType.begin(), javaType.end(),'.','/');
-			params->typeName = javaType;
+
+
+			params->typeName = name;
             auto& localId = id;
 			auto op = [localId](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
 				auto typeLookupParams = std::static_pointer_cast<JVMOpParams_TypeLookup>(opParams);
-				jclass type = env->FindClass(typeLookupParams->typeName.c_str());
+				std::string javaTypeName = typeLookupParams->typeName;
+				std::replace(javaTypeName.begin(), javaTypeName.end(),'.','/');
+				jclass type = env->FindClass(javaTypeName.c_str());
 				if(type != nullptr) {
 					typeLookupParams->type = std::make_shared<JVMType>(localId,type,typeLookupParams->typeName);
 					std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") found" << std::endl;
