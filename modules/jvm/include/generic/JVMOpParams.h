@@ -32,6 +32,31 @@ namespace nigiri {
 			std::shared_ptr<FR_Object> result;
 		};
 
+        class JVMOpParams_InstanceMethodCall : public JVMOpParams {
+		public:
+			~JVMOpParams_InstanceMethodCall() = default;
+			std::shared_ptr<FR_Object> object;
+			std::shared_ptr<FR_Method> method;
+            const std::vector<std::shared_ptr<FR_Object>> *parameters;
+			std::shared_ptr<FR_Object> result;
+		};
+
+        class JVMOpParams_ObjectConstruction : public JVMOpParams {
+        public:
+            ~JVMOpParams_ObjectConstruction() = default;
+            std::shared_ptr<FR_Type> type;
+   			std::shared_ptr<FR_Method> constructor;
+            const std::vector<std::shared_ptr<FR_Object>> *parameters;
+   			std::shared_ptr<FR_Object> result;
+        };
+
+        class JVMOpParams_StringExtraction : public JVMOpParams {
+        public:
+            ~JVMOpParams_StringExtraction() = default;
+            std::shared_ptr<JVMObject> target;
+   			std::string result;
+        };
+
     }
 }
 

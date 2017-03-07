@@ -37,5 +37,13 @@ int main() {
     std::cout << "Out - Type: " << out->getType()->getName() << std::endl;
     std::cout << "Out: " << out->castToInt64().value() << std::endl;
 
+    auto type_Date = jvm->lookupType("java.util.Date");
+    auto constructor_Date = jvm->lookupConstructor(type_Date,{});
+    auto date = jvm->createObject(type_Date,constructor_Date,{});
+    auto type_String = jvm->lookupType("java.lang.String");
+    auto method_Date_toString = jvm->lookupMethod(date,"toString",{},type_String);
+    auto str = jvm->call(date,method_Date_toString,{});
+    std::cout << "Type(toString): " << str->getType()->getName() << std::endl;
+    std::cout << "Value(toString): " << jvm->toString(str) << std::endl;
     return 0;
 }

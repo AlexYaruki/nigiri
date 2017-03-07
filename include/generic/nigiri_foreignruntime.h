@@ -75,6 +75,14 @@ namespace nigiri {
                                                         const std::vector<std::shared_ptr<FR_Type>>& parameterTypes,
                                                         const std::shared_ptr<FR_Type> returnType) = 0;
 
+        virtual std::shared_ptr<FR_Method> lookupMethod(std::shared_ptr<FR_Object> targetType,
+                                                        const std::string& name,
+                                                        const std::vector<std::shared_ptr<FR_Type>>& parameterTypes,
+                                                        const std::shared_ptr<FR_Type> returnType) = 0;
+
+        virtual std::shared_ptr<FR_Method> lookupConstructor(std::shared_ptr<FR_Type> targetType,
+                                                        const std::vector<std::shared_ptr<FR_Type>>& parameterTypes) = 0;
+
         virtual std::shared_ptr<FR_Object> call(std::shared_ptr<FR_Type> targetType,
                                                 std::shared_ptr<FR_Method> method,
                                                 const std::vector<std::shared_ptr<FR_Object>>& parameters) = 0;
@@ -82,6 +90,10 @@ namespace nigiri {
         virtual std::shared_ptr<FR_Object> call(std::shared_ptr<FR_Object> targetObject,
                                                 std::shared_ptr<FR_Method> method,
                                                 const std::vector<std::shared_ptr<FR_Object>>& parameters) = 0;
+
+        virtual std::shared_ptr<FR_Object> createObject(std::shared_ptr<FR_Type> type,
+                                                        std::shared_ptr<FR_Method> constructor,
+                                                        const std::vector<std::shared_ptr<FR_Object>>& parameters) = 0;
 
         virtual std::shared_ptr<FR_Object> wrapPrimitive(uint16_t p) = 0;
         virtual std::shared_ptr<FR_Object> wrapPrimitive(bool p) = 0;
@@ -91,6 +103,7 @@ namespace nigiri {
         virtual std::shared_ptr<FR_Object> wrapPrimitive(int64_t p) = 0;
         virtual std::shared_ptr<FR_Object> wrapPrimitive(float p) = 0;
         virtual std::shared_ptr<FR_Object> wrapPrimitive(double p) = 0;
+        virtual std::string toString(std::shared_ptr<FR_Object> obj) = 0;
     };
 
     class NIGIRI_EXPORT ForeignRuntimeLoader {

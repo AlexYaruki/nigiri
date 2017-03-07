@@ -19,15 +19,19 @@ namespace nigiri {
 
         class JVMType : public nigiri::FR_Type {
         public:
-            JVMType(FR_Id id ,jclass type, std::string name);
+            JVMType(FR_Id id ,jclass type, std::string name, std::string signatureName);
             ~JVMType();
 			FR_Id getRuntimeId();
 			const std::string& getName();
+			const std::string& getSignatureName();
+			bool isPrimitive();
 			jclass getType();
 
         protected:
             jclass type;
 			std::string name;
+			std::string signatureName;
+			bool primitive = false;
 			FR_Id runtimeId;
 
             bool primitiveBoolean = false;
@@ -71,6 +75,15 @@ namespace nigiri {
 			FR_Id runtimeId;
 		};
 
+		class JVMObject : public JVMObjectBase {
+		public:
+			JVMObject(jobject o, std::shared_ptr<JVMType> type, FR_Id id);
+			jobject getObject();
+			jvalue toValue();
+		private:
+			jobject obj;
+		};
+
 		class JVMOpParams {
 		public:
 		    virtual ~JVMOpParams() = default;
@@ -96,6 +109,14 @@ namespace nigiri {
 													const std::vector<std::shared_ptr<FR_Type>>& parameterTypes,
 													const std::shared_ptr<FR_Type> returnType) override;
 
+			std::shared_ptr<FR_Method> lookupMethod(std::shared_ptr<FR_Object> targetObject,
+													const std::string& name,
+													const std::vector<std::shared_ptr<FR_Type>>& parameterTypes,
+													const std::shared_ptr<FR_Type> returnType) override;
+
+			std::shared_ptr<FR_Method> lookupConstructor(std::shared_ptr<FR_Type> targetType,
+														 const std::vector<std::shared_ptr<FR_Type>>& parameterTypes) override;
+
 			std::shared_ptr<nigiri::FR_Object> call(std::shared_ptr<FR_Type> targetType,
                                                     std::shared_ptr<FR_Method> method,
                                                     const std::vector<std::shared_ptr<FR_Object>>& parameters) override;
@@ -103,6 +124,10 @@ namespace nigiri {
             std::shared_ptr<nigiri::FR_Object> call(std::shared_ptr<FR_Object> targetObject,
                                                     std::shared_ptr<FR_Method> method,
                                                     const std::vector<std::shared_ptr<FR_Object>>& parameters) override;
+
+			std::shared_ptr<FR_Object> createObject(std::shared_ptr<FR_Type> type,
+													std::shared_ptr<FR_Method> constructor,
+													const std::vector<std::shared_ptr<FR_Object>>& parameters) override;
 
 			void waitForInitialization();
 			void notifyWorkPrepared();
@@ -117,11 +142,14 @@ namespace nigiri {
 	        std::shared_ptr<FR_Object> wrapPrimitive(float p) override;
 	        std::shared_ptr<FR_Object> wrapPrimitive(double p) override;
 
+			std::string toString(std::shared_ptr<FR_Object> obj) override;
+
 		private:
 			bool isAvailable();
 			std::string prepareMethodSignature(const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
 	                                           const std::shared_ptr<FR_Type> returnType);
             void execute(JVMOp jvmOp, std::shared_ptr<JVMOpParams> params);
+			std::string extractString(std::shared_ptr<JVMObject> obj);
             FR_Id id;
             struct ControlData
 			{
