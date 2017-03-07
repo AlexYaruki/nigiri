@@ -1,7 +1,9 @@
-#pragma once
+#ifndef JVM_FOREIGN_RUNTIME_H
+#define JVM_FOREIGN_RUNTIME_H
 
 #include <jni.h>
 #include <iostream>
+#include <experimental/optional>
 
 #include <nigiri_foreignruntime.h>
 #include <nigiri_statemachine.h>
@@ -17,13 +19,15 @@ namespace nigiri {
 
         class JVMType : public nigiri::FR_Type {
         public:
-            JVMType(FR_Id id ,jclass type);
+            JVMType(FR_Id id ,jclass type, std::string name);
             ~JVMType();
 			FR_Id getRuntimeId();
+			const std::string& getName();
 			jclass getType();
 
         protected:
             jclass type;
+			std::string name;
 			FR_Id runtimeId;
 
             bool primitiveBoolean = false;
@@ -34,36 +38,6 @@ namespace nigiri {
             bool primitiveInt64 = false;
             bool primitiveFloat = false;
             bool primitiveDouble = false;
-        };
-
-        class JVMType_Int8 : public nigiri::internal::JVMType {
-        public:
-            JVMType_Int8(FR_Id id ,jclass type);
-        };
-
-		class JVMType_Int16 : public nigiri::internal::JVMType {
-        public:
-            JVMType_Int16(FR_Id id ,jclass type);
-        };
-
-		class JVMType_Int32 : public nigiri::internal::JVMType {
-        public:
-            JVMType_Int32(FR_Id id ,jclass type);
-        };
-
-		class JVMType_Int64 : public nigiri::internal::JVMType {
-        public:
-            JVMType_Int64(FR_Id id ,jclass type);
-        };
-
-		class JVMType_Float : public nigiri::internal::JVMType {
-		public:
-			JVMType_Float(FR_Id id ,jclass type);
-		};
-
-		class JVMType_Double : public nigiri::internal::JVMType {
-        public:
-            JVMType_Double(FR_Id id ,jclass type);
         };
 
         class JVMMethod : public nigiri::FR_Method {
@@ -78,66 +52,28 @@ namespace nigiri {
 			std::shared_ptr<FR_Type> returnType;
         };
 
-        class JVMOpParams {
-        public:
-            virtual ~JVMOpParams() = default;
-        };
-
 		class JVMObjectBase : public nigiri::FR_Object {
 		public:
 			virtual ~JVMObjectBase() = default;
 			std::shared_ptr<FR_Type> getType();
 			FR_Id getRuntimeId();
 			virtual jvalue toValue() = 0;
-			virtual std::experimental::optional<int64_t> castToInt64();
+			virtual std::experimental::optional<uint16_t> castToUInt16();
+	        virtual std::experimental::optional<bool> castToBool();
+	        virtual std::experimental::optional<int8_t> castToInt8();
+	        virtual std::experimental::optional<int16_t> castToInt16();
+	        virtual std::experimental::optional<int32_t> castToInt32();
+	        virtual std::experimental::optional<int64_t> castToInt64();
+	        virtual std::experimental::optional<float> castToFloat();
 	        virtual std::experimental::optional<double> castToDouble();
 		protected:
 			std::shared_ptr<FR_Type> type;
 			FR_Id runtimeId;
 		};
 
-		class JVM_Int64 : public nigiri::internal::JVMObjectBase {
+		class JVMOpParams {
 		public:
-			JVM_Int64(int64_t v, std::shared_ptr<JVMType_Int64> vType, FR_Id id);
-			std::experimental::optional<int64_t> castToInt64();
-			jvalue toValue();
-		private:
-			jlong value;
-		};
-
-		class JVM_Double : public nigiri::internal::JVMObjectBase {
-		public:
-			JVM_Double(double v, std::shared_ptr<JVMType_Double> vType, FR_Id id);
-			std::experimental::optional<double> castToDouble();
-			jvalue toValue();
-		private:
-			jdouble value;
-		};
-
-        class JVMOpParams_TypeLookup : public JVMOpParams{
-        public:
-            ~JVMOpParams_TypeLookup() = default;
-            std::string typeName;
-            std::shared_ptr<JVMType> type;
-        };
-
-        class JVMOpParams_MethodLookup : public JVMOpParams{
-        public:
-            ~JVMOpParams_MethodLookup() = default;
-            std::shared_ptr<FR_Type> type;
-            std::string methodName;
-			std::string methodSignature;
-			jmethodID method;
-
-        };
-
-		class JVMOpParams_StaticMethodCall : public JVMOpParams {
-		public:
-			~JVMOpParams_StaticMethodCall() = default;
-			std::shared_ptr<FR_Type> type;
-			std::shared_ptr<FR_Method> method;
-            const std::vector<std::shared_ptr<FR_Object>> *parameters;
-			std::shared_ptr<FR_Object> result;
+		    virtual ~JVMOpParams() = default;
 		};
 
         using JVMOp = std::function<void(JNIEnv* env,std::shared_ptr<JVMOpParams> params)>;
@@ -171,7 +107,16 @@ namespace nigiri {
 			void waitForInitialization();
 			void notifyWorkPrepared();
 			void waitForWorkCompleted();
-			std::shared_ptr<FR_Object> wrapPrimitive(double d) override;
+
+			std::shared_ptr<FR_Object> wrapPrimitive(uint16_t p) override;
+	        std::shared_ptr<FR_Object> wrapPrimitive(bool p) override;
+	        std::shared_ptr<FR_Object> wrapPrimitive(int8_t p) override;
+	        std::shared_ptr<FR_Object> wrapPrimitive(int16_t p) override;
+	        std::shared_ptr<FR_Object> wrapPrimitive(int32_t p) override;
+	        std::shared_ptr<FR_Object> wrapPrimitive(int64_t p) override;
+	        std::shared_ptr<FR_Object> wrapPrimitive(float p) override;
+	        std::shared_ptr<FR_Object> wrapPrimitive(double p) override;
+
 		private:
 			bool isAvailable();
 			std::string prepareMethodSignature(const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
@@ -189,6 +134,9 @@ namespace nigiri {
 			ControlData controlData;
 			std::thread jvmThread;
 
+			std::shared_ptr<FR_Type> TYPE_CHAR;
+			std::shared_ptr<FR_Type> TYPE_BOOLEAN;
+
 			std::shared_ptr<FR_Type> TYPE_INT8;
 			std::shared_ptr<FR_Type> TYPE_INT16;
 			std::shared_ptr<FR_Type> TYPE_INT32;
@@ -198,7 +146,7 @@ namespace nigiri {
 			std::shared_ptr<FR_Type> TYPE_DOUBLE;
 		};
 
-
-
     }
 }
+
+#endif

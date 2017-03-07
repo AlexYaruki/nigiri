@@ -2,16 +2,21 @@
 #include <vector>
 #include <algorithm>
 #include "JVMForeignRuntime.h"
+#include "JVMPrimitives.h"
+#include "JVMOpParams.h"
 #include "JVMThread.h"
-
 
 namespace nigiri
 {
 	namespace internal
 	{
-        JVMType::JVMType(FR_Id id, jclass type_) {
+
+		// JVMType /////////////////////////////////////////////////////////////
+
+        JVMType::JVMType(FR_Id id, jclass type_, std::string typeName) {
             type = type_;
             runtimeId = id;
+			name = typeName;
         }
 
         JVMType::~JVMType() {
@@ -26,38 +31,45 @@ namespace nigiri
             return type;
         }
 
-
-        JVMType_Int8::JVMType_Int8(FR_Id id, jclass type) : JVMType(id,nullptr) {
-            primitiveInt8 = true;
-        }
-
-		JVMType_Int16::JVMType_Int16(FR_Id id, jclass type) : JVMType(id,nullptr) {
-            primitiveInt16 = true;
-        }
-
-		JVMType_Int32::JVMType_Int32(FR_Id id, jclass type) : JVMType(id,nullptr) {
-            primitiveInt32 = true;
-        }
-
-		JVMType_Int64::JVMType_Int64(FR_Id id, jclass type) : JVMType(id,nullptr) {
-            primitiveInt64 = true;
-        }
-
-		JVMType_Float::JVMType_Float(FR_Id id, jclass type) : JVMType(id,nullptr) {
-            primitiveFloat = true;
-        }
-
-		JVMType_Double::JVMType_Double(FR_Id id, jclass type) : JVMType(id,nullptr) {
-			primitiveDouble = true;
+		const std::string& JVMType::getName() {
+			return name;
 		}
+
+		/////////////////////////////////////////////////////////////////////////
+
+		// JVMObjectBase ////////////////////////////////////////////////////////
 
 		std::shared_ptr<FR_Type> JVMObjectBase::getType(){
 			return type;
 		}
 
+		std::experimental::optional<uint16_t> JVMObjectBase::castToUInt16() {
+			return std::experimental::optional<uint16_t>();
+		}
+
+		std::experimental::optional<bool> JVMObjectBase::castToBool() {
+	        return std::experimental::optional<bool>();
+	    }
+
+		std::experimental::optional<int8_t> JVMObjectBase::castToInt8() {
+	        return std::experimental::optional<int8_t>();
+	    }
+
+		std::experimental::optional<int16_t> JVMObjectBase::castToInt16() {
+	        return std::experimental::optional<int16_t>();
+	    }
+
+		std::experimental::optional<int32_t> JVMObjectBase::castToInt32() {
+	        return std::experimental::optional<int32_t>();
+	    }
+
 		std::experimental::optional<int64_t> JVMObjectBase::castToInt64() {
 	        return std::experimental::optional<int64_t>();
 	    }
+
+		std::experimental::optional<float> JVMObjectBase::castToFloat() {
+			return std::experimental::optional<float>();
+		}
 
 	    std::experimental::optional<double> JVMObjectBase::castToDouble() {
 	        return std::experimental::optional<double>();
@@ -67,37 +79,10 @@ namespace nigiri
 			return runtimeId;
 		}
 
-		JVM_Int64::JVM_Int64(int64_t v, std::shared_ptr<JVMType_Int64> vType, FR_Id id) {
-			type = vType;
-			value = v;
-			runtimeId = id;
-		}
+		/////////////////////////////////////////////////////////////////////////
 
-		JVM_Double::JVM_Double(double v, std::shared_ptr<JVMType_Double> vType, FR_Id id) {
-			type = vType;
-			value = v;
-			runtimeId = id;
-		}
 
-		std::experimental::optional<int64_t> JVM_Int64::castToInt64(){
-			return std::experimental::optional<int64_t>(value);
-		}
-
-		jvalue JVM_Int64::toValue() {
-			jvalue v;
-			v.j = value;
-			return v;
-		}
-
-		jvalue JVM_Double::toValue() {
-			jvalue v;
-			v.d = value;
-			return v;
-		}
-
-		std::experimental::optional<double> JVM_Double::castToDouble(){
-			return std::experimental::optional<double>(value);
-		}
+		// JVMMethod ////////////////////////////////////////////////////////////
 
         JVMMethod::JVMMethod(FR_Id id, jmethodID method, std::shared_ptr<FR_Type> rT): runtimeId(id), method(method), returnType(rT) {}
 
@@ -113,8 +98,13 @@ namespace nigiri
 			return returnType;
 		}
 
+		/////////////////////////////////////////////////////////////////////////
+
 		JVMForeignRuntime::JVMForeignRuntime(FR_Id id_){
 			id = id_;
+
+			TYPE_CHAR = std::make_shared<JVMType_Char>(getId(), nullptr);
+			TYPE_BOOLEAN = std::make_shared<JVMType_Boolean>(getId(), nullptr);
 
 			TYPE_INT8 = std::make_shared<JVMType_Int8>(getId(), nullptr);
 			TYPE_INT16 = std::make_shared<JVMType_Int16>(getId(), nullptr);
@@ -219,8 +209,6 @@ namespace nigiri
 			return id;
 		}
 
-
-
 		std::shared_ptr<FR_Type> JVMForeignRuntime::lookupType(const std::string& name) {
             std::cout << ">>>> DEBUG: Looking for type: (" << name << ")" << std::endl;
             if(name.compare("byte") == 0){
@@ -237,7 +225,6 @@ namespace nigiri
                 return TYPE_DOUBLE;
             }
 
-
 			std::shared_ptr<JVMOpParams_TypeLookup> params = std::make_shared<JVMOpParams_TypeLookup>();
             std::string javaType = name;
             std::replace(javaType.begin(), javaType.end(),'.','/');
@@ -247,7 +234,7 @@ namespace nigiri
 				auto typeLookupParams = std::static_pointer_cast<JVMOpParams_TypeLookup>(opParams);
 				jclass type = env->FindClass(typeLookupParams->typeName.c_str());
 				if(type != nullptr) {
-					typeLookupParams->type = std::make_shared<JVMType>(localId,type);
+					typeLookupParams->type = std::make_shared<JVMType>(localId,type,typeLookupParams->typeName);
 					std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") found" << std::endl;
 				} else {
 					std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") not found" << std::endl;
@@ -263,7 +250,21 @@ namespace nigiri
             signature.append("(");
             for(std::vector<std::shared_ptr<FR_Type>>::size_type i = 0; i < parametersTypes.size(); i++) {
                 auto jvmType = std::static_pointer_cast<JVMType>(parametersTypes[i]);
-				if(jvmType == TYPE_DOUBLE) {
+				if(jvmType == TYPE_CHAR) {
+					signature.append("C");
+				} else if(jvmType == TYPE_BOOLEAN) {
+					signature.append("Z");
+				} else if(jvmType == TYPE_INT8) {
+					signature.append("B");
+				} else if(jvmType == TYPE_INT16) {
+					signature.append("S");
+				} else if(jvmType == TYPE_INT32) {
+					signature.append("I");
+				} else if(jvmType == TYPE_INT64) {
+					signature.append("J");
+				} else if(jvmType == TYPE_FLOAT) {
+					signature.append("F");
+				} else if(jvmType == TYPE_DOUBLE) {
 					signature.append("D");
 				}
             }
@@ -283,6 +284,7 @@ namespace nigiri
 																   const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
                                                                    const std::shared_ptr<FR_Type> returnType) {
             std::string methodSignature = prepareMethodSignature(parametersTypes,returnType);
+			std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
 			std::cout << ">>>> DEBUG: Looking for method: (" << name << ")" << std::endl;
             auto params = std::make_shared<JVMOpParams_MethodLookup>();
             params->type = targetType;
@@ -315,6 +317,7 @@ namespace nigiri
 		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Type> targetType,
 									 std::shared_ptr<FR_Method> method,
 									 const std::vector<std::shared_ptr<FR_Object>> &parameters) {
+			std::cout << ">>>> DEBUG: Invoking type method ..." << std::endl;
 			auto params = std::make_shared<JVMOpParams_StaticMethodCall>();
 			params->type = targetType;
 			params->method = method;
@@ -326,7 +329,6 @@ namespace nigiri
 				auto callParams = new jvalue[staticMethodCall_params->parameters->size()];
 				for(size_t i = 0; i < staticMethodCall_params->parameters->size(); i++) {
 					auto jvmParam = std::static_pointer_cast<JVMObjectBase>(staticMethodCall_params->parameters->at(i));
-					std::cout << "Input: " << jvmParam->castToDouble().value() << ", " << jvmParam->toValue().d << std::endl;
 					callParams[i] = jvmParam->toValue();
 				}
 				auto returnType = jvmMethod->getReturnType();
@@ -342,13 +344,17 @@ namespace nigiri
 					jlong result = env->CallStaticLongMethodA(jvmType->getType(),
 										                     jvmMethod->getMethod(),
 									                         callParams);
+					std::cout << "Long: " << result << std::endl;
 					staticMethodCall_params->result = std::make_shared<JVM_Int64>(result,
 										                                          std::static_pointer_cast<JVMType_Int64>(TYPE_INT64),
 													                              getId());
+				} else {
+					throw 42;
 				}
 				delete[] callParams;
 			};
 			execute(op,params);
+			std::cout << ">>>> DEBUG: Type method returned" << std::endl;
 			return params->result;
 		}
 
@@ -383,6 +389,55 @@ namespace nigiri
 
 		JVMForeignRuntime::ControlData::~ControlData() {
 			std::cout << "DEBUG - JVMForeignRuntime::ControlData - dtor" << std::endl;
+		}
+
+		std::shared_ptr<FR_Object> JVMForeignRuntime::wrapPrimitive(uint16_t value) {
+			return std::make_shared<JVM_Char>(
+				value,
+				std::static_pointer_cast<JVMType_Char>(TYPE_CHAR),
+				getId());
+		}
+
+		std::shared_ptr<FR_Object> JVMForeignRuntime::wrapPrimitive(bool value) {
+			return std::make_shared<JVM_Boolean>(
+				value,
+				std::static_pointer_cast<JVMType_Boolean>(TYPE_BOOLEAN),
+				getId());
+		}
+
+		std::shared_ptr<FR_Object> JVMForeignRuntime::wrapPrimitive(int8_t value) {
+			return std::make_shared<JVM_Int8>(
+				value,
+				std::static_pointer_cast<JVMType_Int8>(TYPE_INT8),
+				getId());
+		}
+
+		std::shared_ptr<FR_Object> JVMForeignRuntime::wrapPrimitive(int16_t value) {
+			return std::make_shared<JVM_Int16>(
+				value,
+				std::static_pointer_cast<JVMType_Int16>(TYPE_INT16),
+				getId());
+		}
+
+		std::shared_ptr<FR_Object> JVMForeignRuntime::wrapPrimitive(int32_t value) {
+			return std::make_shared<JVM_Int32>(
+				value,
+				std::static_pointer_cast<JVMType_Int32>(TYPE_INT32),
+				getId());
+		}
+
+		std::shared_ptr<FR_Object> JVMForeignRuntime::wrapPrimitive(int64_t value) {
+			return std::make_shared<JVM_Int64>(
+				value,
+				std::static_pointer_cast<JVMType_Int64>(TYPE_INT64),
+				getId());
+		}
+
+		std::shared_ptr<FR_Object> JVMForeignRuntime::wrapPrimitive(float value) {
+			return std::make_shared<JVM_Float>(
+				value,
+				std::static_pointer_cast<JVMType_Float>(TYPE_FLOAT),
+				getId());
 		}
 
 		std::shared_ptr<FR_Object> JVMForeignRuntime::wrapPrimitive(double value) {

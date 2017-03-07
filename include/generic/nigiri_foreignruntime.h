@@ -2,8 +2,10 @@
 #define NIGIRI_FOREIGNRUNTIME_H
 
 #include <vector>
+#include <memory>
 #include <experimental/optional>
 #include "nigiri_build.h"
+#include "nigiri.h"
 
 #if defined(__linux__)
 #   define FR_PREFIX "libnigiri_"
@@ -35,6 +37,7 @@ namespace nigiri {
     public:
         virtual ~FR_Type() = default;
         virtual FR_Id getRuntimeId() = 0;
+        virtual const std::string& getName() = 0;
     };
 
     class NIGIRI_EXPORT FR_Object {
@@ -42,7 +45,13 @@ namespace nigiri {
         virtual ~FR_Object() = default;
         virtual FR_Id getRuntimeId() = 0;
         virtual std::shared_ptr<FR_Type> getType() = 0;
+        virtual std::experimental::optional<uint16_t> castToUInt16() = 0;
+        virtual std::experimental::optional<bool> castToBool() = 0;
+        virtual std::experimental::optional<int8_t> castToInt8() = 0;
+        virtual std::experimental::optional<int16_t> castToInt16() = 0;
+        virtual std::experimental::optional<int32_t> castToInt32() = 0;
         virtual std::experimental::optional<int64_t> castToInt64() = 0;
+        virtual std::experimental::optional<float> castToFloat() = 0;
         virtual std::experimental::optional<double> castToDouble() = 0;
     };
 
@@ -74,7 +83,14 @@ namespace nigiri {
                                                 std::shared_ptr<FR_Method> method,
                                                 const std::vector<std::shared_ptr<FR_Object>>& parameters) = 0;
 
-        virtual std::shared_ptr<FR_Object> wrapPrimitive(double d) = 0;
+        virtual std::shared_ptr<FR_Object> wrapPrimitive(uint16_t p) = 0;
+        virtual std::shared_ptr<FR_Object> wrapPrimitive(bool p) = 0;
+        virtual std::shared_ptr<FR_Object> wrapPrimitive(int8_t p) = 0;
+        virtual std::shared_ptr<FR_Object> wrapPrimitive(int16_t p) = 0;
+        virtual std::shared_ptr<FR_Object> wrapPrimitive(int32_t p) = 0;
+        virtual std::shared_ptr<FR_Object> wrapPrimitive(int64_t p) = 0;
+        virtual std::shared_ptr<FR_Object> wrapPrimitive(float p) = 0;
+        virtual std::shared_ptr<FR_Object> wrapPrimitive(double p) = 0;
     };
 
     class NIGIRI_EXPORT ForeignRuntimeLoader {

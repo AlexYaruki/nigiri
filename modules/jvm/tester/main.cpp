@@ -28,5 +28,13 @@ int main() {
     auto input = jvm->wrapPrimitive(-0.1);
     auto output = jvm->call(type_math, method_abs, {input});
     std::cout << "Output: " << output->castToDouble().value() << std::endl;
+
+    auto method_max_long = jvm->lookupMethod(type_math,"max",{type_long,type_long},type_long);
+    auto in1 = jvm->wrapPrimitive(1L);
+    auto in2 = jvm->wrapPrimitive(3L);
+    auto out = jvm->call(type_math,method_max_long,{in1,in2});
+    std::cout << "Out - Type: " << out->getType()->getName() << std::endl;
+    std::cout << "Out: " << out->castToInt64().value() << std::endl;
+
     return 0;
 }
