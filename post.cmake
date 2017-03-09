@@ -10,6 +10,17 @@ if(DEBUG STREQUAL "yes")
 endif()
 
 if(BUILD_TYPE STREQUAL "shared")
+    string(TOUPPER "${CMAKE_PROJECT_NAME}" PROJECT_SHARED_DEFINITION)
+    set(PROJECT_SHARED_DEFINITION "${PROJECT_SHARED_DEFINITION}_SHARED_BUILD")
+    if( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR
+        "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
+        "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+        add_definitions("-D${PROJECT_SHARED_DEFINITION}")
+    elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+        add_definitions("/D${PROJECT_SHARED_DEFINITION}")
+    else()
+        message(FATAL_ERROR "Unsupported compiler: ${CMAKE_CXX_COMPILER_ID}")
+    endif()
     add_library(${PROJECT_NAME} SHARED ${INPUT_FILES})
 elseif(BUILD_TYPE STREQUAL "static")
     add_library(${PROJECT_NAME} STATIC ${INPUT_FILES})

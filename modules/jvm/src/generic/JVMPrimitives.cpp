@@ -50,7 +50,7 @@ namespace nigiri {
 
         // JVM Primitive Wrapper - char ///////////////////////////////////////////
 
-        JVM_Char::JVM_Char(uint16_t v, std::shared_ptr<JVMType_Char> vType, FR_Id id) {
+        JVM_Char::JVM_Char(jchar v, std::shared_ptr<JVMType_Char> vType, FR_Id id) {
             type = vType;
             value = v;
             runtimeId = id;
@@ -62,13 +62,13 @@ namespace nigiri {
             return v;
         }
 
-        std::experimental::optional<uint16_t> JVM_Char::castToUInt16(){
-            return std::experimental::optional<uint16_t>(value);
+        std::tuple<bool,uint16_t> JVM_Char::castToUInt16(){
+            return std::tuple<bool,uint16_t>(true,value);
         }
 
         // JVM Primitive Wrapper - boolean ///////////////////////////////////////////
 
-        JVM_Boolean::JVM_Boolean(bool v, std::shared_ptr<JVMType_Boolean> vType, FR_Id id) {
+        JVM_Boolean::JVM_Boolean(jboolean v, std::shared_ptr<JVMType_Boolean> vType, FR_Id id) {
             type = vType;
             value = v;
             runtimeId = id;
@@ -80,15 +80,15 @@ namespace nigiri {
             return v;
         }
 
-        std::experimental::optional<bool> JVM_Boolean::castToBool(){
-            return std::experimental::optional<bool>(value == JNI_TRUE ? true : false);
+        std::tuple<bool,bool> JVM_Boolean::castToBool(){
+            return std::tuple<bool,bool>(true,value == JNI_TRUE ? true : false);
         }
 
         ///////////////////////////////////////////////////////////////////////////
 
         // JVM Primitive Wrapper - byte ///////////////////////////////////////////
 
-        JVM_Int8::JVM_Int8(int8_t v, std::shared_ptr<JVMType_Int8> vType, FR_Id id) {
+        JVM_Int8::JVM_Int8(jbyte v, std::shared_ptr<JVMType_Int8> vType, FR_Id id) {
             type = vType;
             value = v;
             runtimeId = id;
@@ -100,15 +100,15 @@ namespace nigiri {
             return v;
         }
 
-        std::experimental::optional<int8_t> JVM_Int8::castToInt8(){
-            return std::experimental::optional<int8_t>(value);
+        std::tuple<bool,int8_t> JVM_Int8::castToInt8(){
+            return std::tuple<bool,int8_t>(true,value);
         }
 
         ///////////////////////////////////////////////////////////////////////////
 
         // JVM Primitive Wrapper - short ///////////////////////////////////////////
 
-        JVM_Int16::JVM_Int16(int16_t v, std::shared_ptr<JVMType_Int16> vType, FR_Id id) {
+        JVM_Int16::JVM_Int16(jshort v, std::shared_ptr<JVMType_Int16> vType, FR_Id id) {
             type = vType;
             value = v;
             runtimeId = id;
@@ -120,15 +120,15 @@ namespace nigiri {
             return v;
         }
 
-        std::experimental::optional<int16_t> JVM_Int16::castToInt16(){
-            return std::experimental::optional<int16_t>(value);
+        std::tuple<bool,int16_t> JVM_Int16::castToInt16(){
+            return std::tuple<bool,int16_t>(true,value);
         }
 
         ///////////////////////////////////////////////////////////////////////////
 
         // JVM Primitive Wrapper - int ///////////////////////////////////////////
 
-        JVM_Int32::JVM_Int32(int32_t v, std::shared_ptr<JVMType_Int32> vType, FR_Id id) {
+        JVM_Int32::JVM_Int32(jint v, std::shared_ptr<JVMType_Int32> vType, FR_Id id) {
             type = vType;
             value = v;
             runtimeId = id;
@@ -140,15 +140,15 @@ namespace nigiri {
             return v;
         }
 
-        std::experimental::optional<int32_t> JVM_Int32::castToInt32(){
-            return std::experimental::optional<int32_t>(value);
+        std::tuple<bool,int32_t> JVM_Int32::castToInt32(){
+            return std::tuple<bool,int32_t>(true,value);
         }
 
         ///////////////////////////////////////////////////////////////////////////
 
         // JVM Primitive Wrapper - long ///////////////////////////////////////////
 
-        JVM_Int64::JVM_Int64(int64_t v, std::shared_ptr<JVMType_Int64> vType, FR_Id id) {
+        JVM_Int64::JVM_Int64(jlong v, std::shared_ptr<JVMType_Int64> vType, FR_Id id) {
             type = vType;
             value = v;
             runtimeId = id;
@@ -160,15 +160,15 @@ namespace nigiri {
             return v;
         }
 
-        std::experimental::optional<int64_t> JVM_Int64::castToInt64(){
-            return std::experimental::optional<int64_t>(value);
+        std::tuple<bool,int64_t> JVM_Int64::castToInt64(){
+            return std::tuple<bool,int64_t>(true,value);
         }
 
         ///////////////////////////////////////////////////////////////////////////
 
         // JVM Primitive Wrapper - float //////////////////////////////////////////
 
-        JVM_Float::JVM_Float(float v, std::shared_ptr<JVMType_Float> vType, FR_Id id) {
+        JVM_Float::JVM_Float(jfloat v, std::shared_ptr<JVMType_Float> vType, FR_Id id) {
             type = vType;
             value = v;
             runtimeId = id;
@@ -180,15 +180,15 @@ namespace nigiri {
             return v;
         }
 
-        std::experimental::optional<float> JVM_Float::castToFloat(){
-            return std::experimental::optional<float>(value);
+        std::tuple<bool,float> JVM_Float::castToFloat(){
+            return std::tuple<bool,float>(true,value);
         }
 
         ///////////////////////////////////////////////////////////////////////////
 
         // JVM Primitive Wrapper - double /////////////////////////////////////////
 
-        JVM_Double::JVM_Double(double v, std::shared_ptr<JVMType_Double> vType, FR_Id id) {
+        JVM_Double::JVM_Double(jdouble v, std::shared_ptr<JVMType_Double> vType, FR_Id id) {
             type = vType;
             value = v;
             runtimeId = id;
@@ -200,8 +200,8 @@ namespace nigiri {
             return v;
         }
 
-        std::experimental::optional<double> JVM_Double::castToDouble(){
-            return std::experimental::optional<double>(value);
+        std::tuple<bool,double> JVM_Double::castToDouble(){
+            return std::tuple<bool,double>(true,value);
         }
 
         ///////////////////////////////////////////////////////////////////////////

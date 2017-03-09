@@ -34,7 +34,7 @@ public:
     };
 
     ~_StateMachine(){
-		std::string msg = "[" + nigiri::getThreadIdString(std::this_thread::get_id()) + "]DEBUG - nigiri::StateMachine - dtor";
+		std::string msg = "DEBUG - nigiri::StateMachine - dtor";
 		std::cout << msg << std::endl;
     }
 
@@ -45,20 +45,20 @@ public:
     void submitEvent(TEvent event){
         if(isEventValid(event)){
             if(eventToStringFunc){
-                std::string msg = "[" + nigiri::getThreadIdString(std::this_thread::get_id()) + "] StateMachine - Submitting event \"" + eventToStringFunc(event) + "\"";
+                std::string msg = "StateMachine - Submitting event \"" + eventToStringFunc(event) + "\"";
                 std::cout << msg << std::endl;
             }
             std::lock_guard<std::mutex> guard(mtx);
 			TState oldState = state;
             state = topology[state][event];
 			if (eventToStringFunc && stateToStringFunc) {
-				std::string msg = "[" + nigiri::getThreadIdString(std::this_thread::get_id()) + "] StateMachine - ";
+				std::string msg = "StateMachine - ";
 				msg += "Event \"" + eventToStringFunc(event) + "\" changed state from \"" + stateToStringFunc(oldState) + "\" to \"" + stateToStringFunc(state) + "\"";
 				std::cout << msg << std::endl;
 			}
             cv.notify_one();
             if(eventToStringFunc){
-                std::string msg = "[" + nigiri::getThreadIdString(std::this_thread::get_id()) + "] StateMachine - Event \"" + eventToStringFunc(event) + "\" submitted";
+                std::string msg = "StateMachine - Event \"" + eventToStringFunc(event) + "\" submitted";
                 std::cout << msg << std::endl;
             }
         }
@@ -66,7 +66,7 @@ public:
 
     void waitForState(TState waitState){
         if(stateToStringFunc){
-            std::string msg = "[" + nigiri::getThreadIdString(std::this_thread::get_id()) + "] StateMachine - Waiting for state \"" + stateToStringFunc(waitState) + "\"";
+            std::string msg = "StateMachine - Waiting for state \"" + stateToStringFunc(waitState) + "\"";
 			std::cout << msg << std::endl;
         }
         std::unique_lock<std::mutex> lock(mtx);
@@ -74,45 +74,43 @@ public:
         cv.wait(lock,[statePtr,waitState](){
 			StateValue requiredStateValue = static_cast<StateValue>(waitState);
 			StateValue currentStateValue = static_cast<StateValue>(*statePtr);
-			std::string msg = "[" + nigiri::getThreadIdString(std::this_thread::get_id()) + "] StateMachine - State check - ";
+			std::string msg = "StateMachine - State check - ";
 			msg += "Required: \"" + std::to_string(requiredStateValue) + "\", Current: \"" + std::to_string(currentStateValue) + "\"";
 			std::cout << msg << std::endl;
 			return waitState == *statePtr;
         });
         if(stateToStringFunc){
-            std::string msg = "[" + nigiri::getThreadIdString(std::this_thread::get_id()) + "] StateMachine - State \"" + stateToStringFunc(waitState) + "\" reached";
+            std::string msg = "StateMachine - State \"" + stateToStringFunc(waitState) + "\" reached";
             std::cout << msg << std::endl;
         }
     };
 
     void waitForStates(std::initializer_list<TState> waitStates){
         if(stateToStringFunc){
-            std::string msg = "[";
-			msg += nigiri::getThreadIdString(std::this_thread::get_id());
-            msg += "] StateMachine - Waiting for ";
+            std::string msg =" StateMachine - Waiting for ";
             for(auto waitState : waitStates){
                 msg += getStateString(waitState) + " ";
             }
             std::cout << msg << std::endl;
         }
         std::unique_lock<std::mutex> lock(mtx);
-        TState* statePtr = &state;
-        cv.wait(lock,[statePtr,waitStates](){
-            for(auto waitState : waitStates){
-                if(waitState == *statePtr){
+		bool condition = true;
+		while (condition) {
+			cv.wait(lock);
+			for (auto waitState : waitStates) {
+				if (waitState == state) {
 					StateValue requiredStateValue = static_cast<StateValue>(waitState);
-					StateValue currentStateValue = static_cast<StateValue>(*statePtr);
-					std::string msg = "[" + nigiri::getThreadIdString(std::this_thread::get_id()) + "] StateMachine - State check - ";
+					StateValue currentStateValue = static_cast<StateValue>(state);
+					std::string msg = "StateMachine - State check - ";
 					msg += "Required: \"" + std::to_string(requiredStateValue) + "\", Current: \"" + std::to_string(currentStateValue) + "\"";
 					std::cout << msg << std::endl;
-                    return true;
-                }
-            }
-            return false;
-        });
+					condition = false;
+				}
+			}
+		}
         if(stateToStringFunc){
             std::string stateString = "\"" + stateToStringFunc(state) + "\"";
-            std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] StateMachine - State " << stateString << " reached" << std::endl;
+            std::cout << "StateMachine - State " << stateString << " reached" << std::endl;
         }
     };
 

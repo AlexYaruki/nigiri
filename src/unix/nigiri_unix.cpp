@@ -31,7 +31,7 @@ namespace nigiri {
         return ::load(nullptr);
     }
 
-    Handle_Unix::Handle_Unix(void* nativeHandle) {  
+    Handle_Unix::Handle_Unix(void* nativeHandle) {
         this->nativeHandle = nativeHandle;
     }
 

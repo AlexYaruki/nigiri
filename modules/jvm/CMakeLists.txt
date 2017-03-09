@@ -14,7 +14,6 @@ set(LIBRARIES ${JNI_LIBRARIES})
 include_directories(${JNI_INCLUDE_DIRS})
 link_directories(${JAVA_JVM_LIBRARY})
 
-
 set(BUILD_TYPE "shared")
 
 include(post.cmake)

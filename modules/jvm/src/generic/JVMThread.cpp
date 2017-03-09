@@ -11,16 +11,6 @@
 #	error This platform is not supported
 #endif
 
-/*
-
-JVM Classpath:
-	- nigiri-java.jar -> Java-side of benchmark loading
-		- Present in $JAVA_HOME/lib/ext
-	- <filename>.jar -> File containing benchmarks implemented in Java
-
-*/
-
-
 namespace nigiri
 {
 	namespace internal
@@ -33,7 +23,7 @@ namespace nigiri
         }
 
         JVMThread::~JVMThread() {
-            std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] " << "DEBUG - JVMThread - dtor" << std::endl;
+            std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "DEBUG - JVMThread - dtor" << std::endl;
         }
 
 		std::string JVMThread::getCurrentDirectory()
@@ -79,17 +69,17 @@ namespace nigiri
 		{
 			jvm->DestroyJavaVM();
             controlData->stateMachine.submitEvent(JVMEvent::JVM_Destroyed);
-			std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] " << "JVM Destroyed" << std::endl;
+			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVM Destroyed" << std::endl;
 		}
 
         void JVMThread::waitForWork() {
-			std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Waiting for work ..." << std::endl;
+			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Waiting for work ..." << std::endl;
             controlData->stateMachine.waitForState(JVMState::WorkPrepared);
-			std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Work received" << std::endl;
+			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Work received" << std::endl;
         }
 
 		void JVMThread::executeWork() {
-            std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Work execution" << std::endl;
+            std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Work execution" << std::endl;
             switch(controlData->workOperation){
                 case JVMWorkOperation::ExecuteOp: {
                     controlData->jvmOp(env,controlData->jvmOpParams);
@@ -107,7 +97,7 @@ namespace nigiri
 
         void JVMThread::notifyWorkFinished() {
 			controlData->stateMachine.submitEvent(JVMEvent::Work_Completed);
-			std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Work finished" << std::endl;
+			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Work finished" << std::endl;
         }
 
 		void JVMThread::workLoop()
@@ -118,7 +108,7 @@ namespace nigiri
                 executeWork();
                 notifyWorkFinished();
 			}
-            std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Work loop stopped" << std::endl;
+            std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Work loop stopped" << std::endl;
         }
 
 	}

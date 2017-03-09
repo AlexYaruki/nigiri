@@ -3,14 +3,14 @@
 
 #include <vector>
 #include <memory>
-#include <experimental/optional>
+#include <tuple>
 #include "nigiri_build.h"
 #include "nigiri.h"
 
 #if defined(__linux__)
 #   define FR_PREFIX "libnigiri_"
 #   define FR_SUFFIX ".so"
-#elif defined(WIN32)
+#elif defined(_WIN64)
 #   define FR_PREFIX "nigiri_"
 #   define FR_SUFFIX ".dll"
 #elif defined(__APPLE__)
@@ -45,14 +45,14 @@ namespace nigiri {
         virtual ~FR_Object() = default;
         virtual FR_Id getRuntimeId() = 0;
         virtual std::shared_ptr<FR_Type> getType() = 0;
-        virtual std::experimental::optional<uint16_t> castToUInt16() = 0;
-        virtual std::experimental::optional<bool> castToBool() = 0;
-        virtual std::experimental::optional<int8_t> castToInt8() = 0;
-        virtual std::experimental::optional<int16_t> castToInt16() = 0;
-        virtual std::experimental::optional<int32_t> castToInt32() = 0;
-        virtual std::experimental::optional<int64_t> castToInt64() = 0;
-        virtual std::experimental::optional<float> castToFloat() = 0;
-        virtual std::experimental::optional<double> castToDouble() = 0;
+        virtual std::tuple<bool,uint16_t> castToUInt16() = 0;
+        virtual std::tuple<bool,bool> castToBool() = 0;
+        virtual std::tuple<bool,int8_t> castToInt8() = 0;
+        virtual std::tuple<bool,int16_t> castToInt16() = 0;
+        virtual std::tuple<bool,int32_t> castToInt32() = 0;
+        virtual std::tuple<bool,int64_t> castToInt64() = 0;
+        virtual std::tuple<bool,float> castToFloat() = 0;
+        virtual std::tuple<bool,double> castToDouble() = 0;
     };
 
     class NIGIRI_EXPORT FR_Method {

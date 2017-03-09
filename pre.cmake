@@ -43,18 +43,14 @@ else()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif()
 message(STATUS "Input files: ${INPUT_FILES}")
-string(TOUPPER "${CMAKE_PROJECT_NAME}" PROJECT_SHARED_DEFINITION)
-set(PROJECT_SHARED_DEFINITION "${PROJECT_SHARED_DEFINITION}_SHARED_BUILD")
 
 if( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Werror -pedantic")
-    add_definitions("-D${PROJECT_SHARED_DEFINITION}")
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(INPUT_FILES ${INPUT_FILES} ${HEADERS})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX")
-    add_definitions("/D${PROJECT_SHARED_DEFINITION}")
 else()
     message(FATAL_ERROR "Unsupported compiler: ${CMAKE_CXX_COMPILER_ID}")
 endif()

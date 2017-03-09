@@ -52,36 +52,36 @@ namespace nigiri
 			return type;
 		}
 
-		std::experimental::optional<uint16_t> JVMObjectBase::castToUInt16() {
-			return std::experimental::optional<uint16_t>();
+		std::tuple<bool,uint16_t> JVMObjectBase::castToUInt16() {
+			return std::tuple<bool,uint16_t>();
 		}
 
-		std::experimental::optional<bool> JVMObjectBase::castToBool() {
-	        return std::experimental::optional<bool>();
+		std::tuple<bool,bool> JVMObjectBase::castToBool() {
+	        return std::tuple<bool,bool>();
 	    }
 
-		std::experimental::optional<int8_t> JVMObjectBase::castToInt8() {
-	        return std::experimental::optional<int8_t>();
+		std::tuple<bool,int8_t> JVMObjectBase::castToInt8() {
+	        return std::tuple<bool,int8_t>();
 	    }
 
-		std::experimental::optional<int16_t> JVMObjectBase::castToInt16() {
-	        return std::experimental::optional<int16_t>();
+		std::tuple<bool,int16_t> JVMObjectBase::castToInt16() {
+	        return std::tuple<bool,int16_t>();
 	    }
 
-		std::experimental::optional<int32_t> JVMObjectBase::castToInt32() {
-	        return std::experimental::optional<int32_t>();
+		std::tuple<bool,int32_t> JVMObjectBase::castToInt32() {
+	        return std::tuple<bool,int32_t>();
 	    }
 
-		std::experimental::optional<int64_t> JVMObjectBase::castToInt64() {
-	        return std::experimental::optional<int64_t>();
+		std::tuple<bool,int64_t> JVMObjectBase::castToInt64() {
+	        return std::tuple<bool,int64_t>();
 	    }
 
-		std::experimental::optional<float> JVMObjectBase::castToFloat() {
-			return std::experimental::optional<float>();
+		std::tuple<bool,float> JVMObjectBase::castToFloat() {
+			return std::tuple<bool,float>();
 		}
 
-	    std::experimental::optional<double> JVMObjectBase::castToDouble() {
-	        return std::experimental::optional<double>();
+	    std::tuple<bool,double> JVMObjectBase::castToDouble() {
+	        return std::tuple<bool,double>();
 	    }
 
 		FR_Id JVMObjectBase::getRuntimeId(){
@@ -166,43 +166,47 @@ namespace nigiri
 		void JVMForeignRuntime::waitForInitialization()
 		{
 			if(LOG_JVMFOREIGNRUNTIME)
-            	std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Waiting for JVM startup ..." << std::endl;
+            	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Waiting for JVM startup ..." << std::endl;
             controlData.stateMachine.waitForStates({JVMState::Started,JVMState::ErrorShutdown});
 			if(LOG_JVMFOREIGNRUNTIME)
-				std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM startup completed" << std::endl;
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM startup completed" << std::endl;
 		}
 
 		bool JVMForeignRuntime::start()
 		{
+			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Starting JVM ..." << std::endl;
 			jvmThread = std::thread([](ControlData* controlData_)
 			{
+				if (LOG_JVMTHREAD)
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Start of JVMThread" << std::endl;
 				JVMThread jvmThread(controlData_);
 				bool jvmCreated = jvmThread.createJVM();
 				if (!jvmCreated)
 				{	if(LOG_JVMTHREAD)
-						std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMThread - JVM Cannot be created" << std::endl;
+						std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - JVM Cannot be created" << std::endl;
 					jvmThread.notifyRollback();
 				}
 				else
 				{
 					if(LOG_JVMTHREAD)
-						std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMThread - JVM Created" << std::endl;
+						std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - JVM Created" << std::endl;
 					if(LOG_JVMTHREAD)
-                        std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Starting work loop" << std::endl;
+                        std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Starting work loop" << std::endl;
 					jvmThread.workLoop();
 				}
 				jvmThread.quit();
 				if(LOG_JVMTHREAD)
-					std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMThread - End of JVMThread" << std::endl;
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - End of JVMThread" << std::endl;
 			}, &controlData);
+			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread started" << std::endl;
 			waitForInitialization();
             if(controlData.stateMachine.getState() == JVMState::Started){
 				if(LOG_JVMFOREIGNRUNTIME)
-					std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM is work-ready" << std::endl;
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM is work-ready" << std::endl;
                 return true;
             } else {
 				if(LOG_JVMFOREIGNRUNTIME)
-                	std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM could not be started" << std::endl;
+                	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM could not be started" << std::endl;
                 jvmThread.join();
                 return false;
             }
@@ -217,18 +221,18 @@ namespace nigiri
 
 		void JVMForeignRuntime::stop()
 		{
-			std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Beginning of JVMThread shutdown" << std::endl;
+			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Beginning of JVMThread shutdown" << std::endl;
             if(isRunning()){
-				std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is running" << std::endl;
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is running" << std::endl;
 				controlData.workOperation = JVMWorkOperation::Shutdown;
                 notifyWorkPrepared();
                 waitForWorkCompleted();
-				std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread confirmation received" << std::endl;
-				std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Joining JVM thread" << std::endl;
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread confirmation received" << std::endl;
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Joining JVM thread" << std::endl;
 				jvmThread.join();
-				std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM thread joined" << std::endl;
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM thread joined" << std::endl;
 			} else {
-				std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is not running" << std::endl;
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is not running" << std::endl;
             }
 
 		}
@@ -255,10 +259,10 @@ namespace nigiri
 
 			std::shared_ptr<JVMOpParams_TypeLookup> params = std::make_shared<JVMOpParams_TypeLookup>();
 
-
 			params->typeName = name;
             auto& localId = id;
 			auto op = [localId](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
+				std::cout << "Started type lookup ..." << std::endl;
 				auto typeLookupParams = std::static_pointer_cast<JVMOpParams_TypeLookup>(opParams);
 				std::string javaTypeName = typeLookupParams->typeName;
 				std::replace(javaTypeName.begin(), javaTypeName.end(),'.','/');
@@ -415,7 +419,7 @@ namespace nigiri
 			 		jboolean result = env->CallBooleanMethodA(jvmObject->getObject(),
 			 														jvmMethod->getMethod(),
 			 														callParams);
-			 		instanceMethodCall_params->result = std::make_shared<JVM_Boolean>(result,
+			 		instanceMethodCall_params->result = std::make_shared<JVM_Boolean>(result == JNI_TRUE ? true : false,
 			 																	  std::static_pointer_cast<JVMType_Boolean>(returnType),
 			 																	  getId());
 			 	} else if(returnType == TYPE_INT8) {
@@ -426,14 +430,14 @@ namespace nigiri
 			 																	  std::static_pointer_cast<JVMType_Int8>(returnType),
 			 																	  getId());
 			 	} else if(returnType == TYPE_INT16) {
-			 		jlong result = env->CallShortMethodA(jvmObject->getObject(),
+			 		jshort result = env->CallShortMethodA(jvmObject->getObject(),
 			 												 jvmMethod->getMethod(),
 			 												 callParams);
 			 		instanceMethodCall_params->result = std::make_shared<JVM_Int16>(result,
 			 																	  std::static_pointer_cast<JVMType_Int16>(returnType),
 			 																	  getId());
 			 	} else if(returnType == TYPE_INT32) {
-			 		jlong result = env->CallIntMethodA(jvmObject->getObject(),
+			 		jint result = env->CallIntMethodA(jvmObject->getObject(),
 			 												 jvmMethod->getMethod(),
 			 												 callParams);
 			 		instanceMethodCall_params->result = std::make_shared<JVM_Int32>(result,
@@ -521,14 +525,14 @@ namespace nigiri
 										                                          std::static_pointer_cast<JVMType_Int8>(returnType),
 													                              getId());
 				} else if(returnType == TYPE_INT16) {
-					jlong result = env->CallStaticShortMethodA(jvmType->getType(),
+					jshort result = env->CallStaticShortMethodA(jvmType->getType(),
 										                     jvmMethod->getMethod(),
 									                         callParams);
 					staticMethodCall_params->result = std::make_shared<JVM_Int16>(result,
 										                                          std::static_pointer_cast<JVMType_Int16>(returnType),
 													                              getId());
 				} else if(returnType == TYPE_INT32) {
-					jlong result = env->CallStaticIntMethodA(jvmType->getType(),
+					jint result = env->CallStaticIntMethodA(jvmType->getType(),
 										                     jvmMethod->getMethod(),
 									                         callParams);
 					staticMethodCall_params->result = std::make_shared<JVM_Int32>(result,
@@ -600,23 +604,23 @@ namespace nigiri
 		}
 
 		void JVMForeignRuntime::notifyWorkPrepared() {
-			std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Work prepared" << std::endl;
+			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Work prepared" << std::endl;
 			controlData.stateMachine.submitEvent(JVMEvent::Work_Prepared);
         }
 
 		void JVMForeignRuntime::waitForWorkCompleted() {
             controlData.stateMachine.waitForState(JVMState::WorkCompleted);
-			std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Work completed" << std::endl;
+			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Work completed" << std::endl;
 			controlData.stateMachine.submitEvent(JVMEvent::Work_Idle);
          }
 
 			bool JVMForeignRuntime::isAvailable(){
 			JVMState state = controlData.stateMachine.getState();
 			if(state == JVMState::Started || state == JVMState::WorkCompleted) {
-				std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - System ready for work" << std::endl;
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - System ready for work" << std::endl;
 				return true;
 			} else {
-				std::cout << "[" << nigiri::getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - System not ready for work, current state: " << getStateString(state) << std::endl;
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - System not ready for work, current state: " << getStateString(state) << std::endl;
 			 	return false;
 		 	}
 		}
@@ -714,6 +718,12 @@ namespace nigiri
 				}
 			}
 		}
+
+		std::string getThreadIdString(std::thread::id tid){
+	        static std::hash<std::thread::id> hasher;
+	        auto hash = hasher(tid);
+	        return std::to_string(hash);
+	    }
 
 	}
 }

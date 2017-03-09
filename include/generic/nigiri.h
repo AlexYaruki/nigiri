@@ -7,13 +7,17 @@
 
 #include "nigiri_build.h"
 #ifdef __linux__
-#   include "nigiri_unix.h"
-#elif WIN32
-#   include "nigiri_win32.h"
-#elif __APPLE__
-#   include "../unix/nigiri_unix.h"
+	#include "nigiri_unix.h"
 #else
-#   error This platform is not supported
+	#ifdef _WIN64
+		#include "nigiri_win32.h"
+	#else
+		#ifdef __APPLE__
+			#include "../unix/nigiri_unix.h"
+		#else
+			#error This platform is not supported
+		#endif
+	#endif
 #endif
 
 #include "nigiri_foreignruntime.h"
@@ -25,8 +29,6 @@ namespace nigiri {
         uint32_t status;
         std::shared_ptr<T> value;
     };
-
-    NIGIRI_EXPORT std::string getThreadIdString(std::thread::id tid);
 
     NIGIRI_EXPORT std::shared_ptr<Handle> load(const std::string &path);
 

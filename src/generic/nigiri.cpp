@@ -89,9 +89,4 @@ namespace nigiri {
         }
     }
 
-    std::string getThreadIdString(std::thread::id tid){
-        static std::hash<std::thread::id> hasher;
-        auto hash = hasher(tid);
-        return std::to_string(hash);
-    }
 }

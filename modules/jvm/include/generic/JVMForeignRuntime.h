@@ -1,9 +1,10 @@
 #ifndef JVM_FOREIGN_RUNTIME_H
 #define JVM_FOREIGN_RUNTIME_H
 
+#undef NIGIRI_SHARED_BUILD
+
 #include <jni.h>
 #include <iostream>
-#include <experimental/optional>
 
 #include <nigiri_foreignruntime.h>
 #include <nigiri_statemachine.h>
@@ -62,14 +63,14 @@ namespace nigiri {
 			std::shared_ptr<FR_Type> getType();
 			FR_Id getRuntimeId();
 			virtual jvalue toValue() = 0;
-			virtual std::experimental::optional<uint16_t> castToUInt16();
-	        virtual std::experimental::optional<bool> castToBool();
-	        virtual std::experimental::optional<int8_t> castToInt8();
-	        virtual std::experimental::optional<int16_t> castToInt16();
-	        virtual std::experimental::optional<int32_t> castToInt32();
-	        virtual std::experimental::optional<int64_t> castToInt64();
-	        virtual std::experimental::optional<float> castToFloat();
-	        virtual std::experimental::optional<double> castToDouble();
+			virtual std::tuple<bool,uint16_t> castToUInt16();
+	        virtual std::tuple<bool,bool> castToBool();
+	        virtual std::tuple<bool,int8_t> castToInt8();
+	        virtual std::tuple<bool,int16_t> castToInt16();
+	        virtual std::tuple<bool,int32_t> castToInt32();
+	        virtual std::tuple<bool,int64_t> castToInt64();
+	        virtual std::tuple<bool,float> castToFloat();
+	        virtual std::tuple<bool,double> castToDouble();
 		protected:
 			std::shared_ptr<FR_Type> type;
 			FR_Id runtimeId;
@@ -173,6 +174,8 @@ namespace nigiri {
 			std::shared_ptr<FR_Type> TYPE_FLOAT;
 			std::shared_ptr<FR_Type> TYPE_DOUBLE;
 		};
+
+		std::string getThreadIdString(std::thread::id tid);
 
     }
 }
