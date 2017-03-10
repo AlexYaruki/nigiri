@@ -23,8 +23,10 @@ namespace nigiri
         }
 
         JVMThread::~JVMThread() {
-            std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "DEBUG - JVMThread - dtor" << std::endl;
-        }
+			if(LOG_JVMTHREAD) {
+            	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "DEBUG - JVMThread - dtor" << std::endl;
+			}
+		}
 
 		std::string JVMThread::getCurrentDirectory()
 		{
@@ -69,26 +71,36 @@ namespace nigiri
 		{
 			jvm->DestroyJavaVM();
             controlData->stateMachine.submitEvent(JVMEvent::JVM_Destroyed);
-			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVM Destroyed" << std::endl;
+			if(LOG_JVMTHREAD) {
+            	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVM Destroyed" << std::endl;
+			}
 		}
 
         void JVMThread::waitForWork() {
-			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Waiting for work ..." << std::endl;
-            controlData->stateMachine.waitForState(JVMState::WorkPrepared);
-			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Work received" << std::endl;
-        }
+			if(LOG_JVMTHREAD) {
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Waiting for work ..." << std::endl;
+			}
+			controlData->stateMachine.waitForState(JVMState::WorkPrepared);
+			if(LOG_JVMTHREAD) {
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Work received" << std::endl;
+			}
+		}
 
 		void JVMThread::executeWork() {
-            std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Work execution" << std::endl;
-            switch(controlData->workOperation){
+			if(LOG_JVMTHREAD) {
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] " << "JVMThread - Work execution" << std::endl;
+			}
+			switch(controlData->workOperation){
                 case JVMWorkOperation::ExecuteOp: {
                     controlData->jvmOp(env,controlData->jvmOpParams);
 					break;
                 }
                 case JVMWorkOperation::Shutdown:
                 {
-                    std::cout << "JVMThread - Shutdown requested" << std::endl;
-                    shutdownRequested = true;
+					if(LOG_JVMTHREAD) {
+						std::cout << "JVMThread - Shutdown requested" << std::endl;
+					}
+					shutdownRequested = true;
                     break;
                 }
 
@@ -97,8 +109,10 @@ namespace nigiri
 
         void JVMThread::notifyWorkFinished() {
 			controlData->stateMachine.submitEvent(JVMEvent::Work_Completed);
-			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Work finished" << std::endl;
-        }
+			if(LOG_JVMTHREAD) {
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Work finished" << std::endl;
+			}
+		}
 
 		void JVMThread::workLoop()
 		{
@@ -108,8 +122,9 @@ namespace nigiri
                 executeWork();
                 notifyWorkFinished();
 			}
-            std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Work loop stopped" << std::endl;
-        }
-
+			if(LOG_JVMTHREAD) {
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Work loop stopped" << std::endl;
+			}
+		}
 	}
 }

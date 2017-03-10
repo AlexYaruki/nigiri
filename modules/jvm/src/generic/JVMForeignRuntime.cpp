@@ -159,55 +159,69 @@ namespace nigiri
 		}
 
 		JVMForeignRuntime::~JVMForeignRuntime() {
-			std::cout << "DEBUG - JVMForeignRuntime - dtor" << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << "DEBUG - JVMForeignRuntime - dtor" << std::endl;
+			}
 			stop();
 		}
 
 		void JVMForeignRuntime::waitForInitialization()
 		{
-			if(LOG_JVMFOREIGNRUNTIME)
+			if(LOG_JVMFOREIGNRUNTIME) {
             	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Waiting for JVM startup ..." << std::endl;
-            controlData.stateMachine.waitForStates({JVMState::Started,JVMState::ErrorShutdown});
-			if(LOG_JVMFOREIGNRUNTIME)
+			}
+			controlData.stateMachine.waitForStates({JVMState::Started,JVMState::ErrorShutdown});
+			if(LOG_JVMFOREIGNRUNTIME) {
 				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM startup completed" << std::endl;
+			}
 		}
 
 		bool JVMForeignRuntime::start()
 		{
-			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Starting JVM ..." << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+            	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Starting JVM ..." << std::endl;
+			}
 			jvmThread = std::thread([](ControlData* controlData_)
 			{
-				if (LOG_JVMTHREAD)
+				if (LOG_JVMTHREAD) {
 					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Start of JVMThread" << std::endl;
+				}
 				JVMThread jvmThread(controlData_);
 				bool jvmCreated = jvmThread.createJVM();
 				if (!jvmCreated)
-				{	if(LOG_JVMTHREAD)
+				{
+					if(LOG_JVMTHREAD) {
 						std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - JVM Cannot be created" << std::endl;
+					}
 					jvmThread.notifyRollback();
 				}
 				else
 				{
-					if(LOG_JVMTHREAD)
+					if(LOG_JVMTHREAD) {
 						std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - JVM Created" << std::endl;
-					if(LOG_JVMTHREAD)
-                        std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Starting work loop" << std::endl;
+					    std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Starting work loop" << std::endl;
+					}
 					jvmThread.workLoop();
 				}
 				jvmThread.quit();
-				if(LOG_JVMTHREAD)
+				if(LOG_JVMTHREAD) {
 					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - End of JVMThread" << std::endl;
+				}
 			}, &controlData);
-			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread started" << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread started" << std::endl;
+			}
 			waitForInitialization();
             if(controlData.stateMachine.getState() == JVMState::Started){
-				if(LOG_JVMFOREIGNRUNTIME)
+				if(LOG_JVMFOREIGNRUNTIME) {
 					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM is work-ready" << std::endl;
-                return true;
+				}
+				return true;
             } else {
-				if(LOG_JVMFOREIGNRUNTIME)
+				if(LOG_JVMFOREIGNRUNTIME) {
                 	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM could not be started" << std::endl;
-                jvmThread.join();
+				}
+				jvmThread.join();
                 return false;
             }
 		}
@@ -221,20 +235,29 @@ namespace nigiri
 
 		void JVMForeignRuntime::stop()
 		{
-			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Beginning of JVMThread shutdown" << std::endl;
-            if(isRunning()){
-				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is running" << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Beginning of JVMThread shutdown" << std::endl;
+			}
+			if(isRunning()){
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is running" << std::endl;
+				}
 				controlData.workOperation = JVMWorkOperation::Shutdown;
                 notifyWorkPrepared();
                 waitForWorkCompleted();
-				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread confirmation received" << std::endl;
-				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Joining JVM thread" << std::endl;
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread confirmation received" << std::endl;
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Joining JVM thread ..." << std::endl;
+				}
 				jvmThread.join();
-				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM thread joined" << std::endl;
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM thread joined" << std::endl;
+				}
 			} else {
-				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is not running" << std::endl;
-            }
-
+				if(LOG_JVMFOREIGNRUNTIME) {
+                	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is not running" << std::endl;
+				}
+			}
 		}
 
 		FR_Id JVMForeignRuntime::getId() {
@@ -242,8 +265,10 @@ namespace nigiri
 		}
 
 		std::shared_ptr<FR_Type> JVMForeignRuntime::lookupType(const std::string& name) {
-            std::cout << ">>>> DEBUG: Looking for type: (" << name << ")" << std::endl;
-            if(name.compare("byte") == 0){
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << ">>>> DEBUG: Looking for type: (" << name << ")" << std::endl;
+			}
+			if(name.compare("byte") == 0){
                 return TYPE_INT8;
             } else if(name.compare("short") == 0){
                 return TYPE_INT16;
@@ -262,7 +287,9 @@ namespace nigiri
 			params->typeName = name;
             auto& localId = id;
 			auto op = [localId](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
-				std::cout << "Started type lookup ..." << std::endl;
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << "Started type lookup ..." << std::endl;
+				}
 				auto typeLookupParams = std::static_pointer_cast<JVMOpParams_TypeLookup>(opParams);
 				std::string javaTypeName = typeLookupParams->typeName;
 				std::replace(javaTypeName.begin(), javaTypeName.end(),'.','/');
@@ -270,9 +297,13 @@ namespace nigiri
 				if(type != nullptr) {
 					javaTypeName = "L" + javaTypeName + ";";
 					typeLookupParams->type = std::make_shared<JVMType>(localId,type,typeLookupParams->typeName,javaTypeName);
-					std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") found" << std::endl;
+					if(LOG_JVMFOREIGNRUNTIME) {
+						std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") found" << std::endl;
+					}
 				} else {
-					std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") not found" << std::endl;
+					if(LOG_JVMFOREIGNRUNTIME) {
+	                	std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") not found" << std::endl;
+					}
 				}
 			};
 			execute(op,params);
@@ -301,21 +332,27 @@ namespace nigiri
 																   const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
 																   const std::shared_ptr<FR_Type> returnType) {
 			std::string methodSignature = prepareMethodSignature(parametersTypes,returnType);
-			std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
-			std::cout << ">>>> DEBUG: Looking for method: (" << name << ")" << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
+				std::cout << ">>>> DEBUG: Looking for method: (" << name << ")" << std::endl;
+			}
 			auto params = std::make_shared<JVMOpParams_MethodLookup>();
 			params->type = targetObject->getType();
 			params->methodName = name;
 			params->methodSignature = methodSignature;
 			auto op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
 				auto methodLookupParams = std::static_pointer_cast<JVMOpParams_MethodLookup>(opParams);
-				std::cout << ">>>> DEBUG: Looking for method: (" << methodLookupParams->methodName << ")" << std::endl;
+				if(LOG_JVMFOREIGNRUNTIME) {
+                	std::cout << ">>>> DEBUG: Looking for method: (" << methodLookupParams->methodName << ")" << std::endl;
+				}
 				auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
 				jmethodID method = env->GetMethodID(type->getType(),methodLookupParams->methodName.c_str(),methodLookupParams->methodSignature.c_str());
-				if(method != nullptr) {
-					std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") found" << std::endl;
-				} else {
-					std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") not found" << std::endl;
+				if(LOG_JVMFOREIGNRUNTIME) {
+	            	if(method != nullptr) {
+						std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") found" << std::endl;
+					} else {
+						std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") not found" << std::endl;
+					}
 				}
 				methodLookupParams->method = method;
 			};
@@ -328,22 +365,28 @@ namespace nigiri
 																   const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
                                                                    const std::shared_ptr<FR_Type> returnType) {
             std::string methodSignature = prepareMethodSignature(parametersTypes,returnType);
-			std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
-			std::cout << ">>>> DEBUG: Looking for method: (" << name << ")" << std::endl;
-            auto params = std::make_shared<JVMOpParams_MethodLookup>();
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
+				std::cout << ">>>> DEBUG: Looking for method: (" << name << ")" << std::endl;
+			}
+			auto params = std::make_shared<JVMOpParams_MethodLookup>();
             params->type = targetType;
             params->methodName = name;
 			params->methodSignature = methodSignature;
             auto op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
                 auto methodLookupParams = std::static_pointer_cast<JVMOpParams_MethodLookup>(opParams);
-                std::cout << ">>>> DEBUG: Looking for method: (" << methodLookupParams->methodName << ")" << std::endl;
-                auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << ">>>> DEBUG: Looking for method: (" << methodLookupParams->methodName << ")" << std::endl;
+				}
+				auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
                 jmethodID method = env->GetStaticMethodID(type->getType(),methodLookupParams->methodName.c_str(),methodLookupParams->methodSignature.c_str());
-                if(method != nullptr) {
-                    std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") found" << std::endl;
-                } else {
-                    std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") not found" << std::endl;
-                }
+				if(LOG_JVMFOREIGNRUNTIME) {
+					if(method != nullptr) {
+	                    std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") found" << std::endl;
+	                } else {
+	                    std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") not found" << std::endl;
+	                }
+				}
                 methodLookupParams->method = method;
             };
             execute(op,params);
@@ -353,21 +396,27 @@ namespace nigiri
 		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupConstructor(std::shared_ptr<FR_Type> targetType,
 													 const std::vector<std::shared_ptr<FR_Type>>& parametersTypes) {
 		    std::string methodSignature = prepareMethodSignature(parametersTypes,nullptr);
-			std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
-			std::cout << ">>>> DEBUG: Looking for constructor ..." << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
+				std::cout << ">>>> DEBUG: Looking for constructor ..." << std::endl;
+			}
 			auto params = std::make_shared<JVMOpParams_MethodLookup>();
 			params->type = targetType;
 			params->methodName = "<init>";
 			params->methodSignature = methodSignature;
 			auto op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
 				auto methodLookupParams = std::static_pointer_cast<JVMOpParams_MethodLookup>(opParams);
-				std::cout << ">>>> DEBUG: Looking for constructor: (" << methodLookupParams->methodName << ")" << std::endl;
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << ">>>> DEBUG: Looking for constructor: (" << methodLookupParams->methodName << ")" << std::endl;
+				}
 				auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
 				jmethodID method = env->GetMethodID(type->getType(),methodLookupParams->methodName.c_str(),methodLookupParams->methodSignature.c_str());
-				if(method != nullptr) {
-			    	std::cout << ">>>> DEBUG: Constructor found" << std::endl;
-				} else {
-					std::cout << ">>>> DEBUG: Constructor not found" << std::endl;
+				if(LOG_JVMFOREIGNRUNTIME) {
+					if(method != nullptr) {
+				    	std::cout << ">>>> DEBUG: Constructor found" << std::endl;
+					} else {
+						std::cout << ">>>> DEBUG: Constructor not found" << std::endl;
+					}
 				}
 				methodLookupParams->method = method;
 			};
@@ -382,7 +431,9 @@ namespace nigiri
 			 if(targetObjectType->isPrimitive()){
 				 throw "Attempt to call method on primitive type value";
 			 }
-			 std::cout << ">>>> DEBUG: Invoking object method ..." << std::endl;
+			 if(LOG_JVMFOREIGNRUNTIME) {
+			 	std::cout << ">>>> DEBUG: Invoking object method ..." << std::endl;
+		 	 }
 			 auto params = std::make_shared<JVMOpParams_InstanceMethodCall>();
 			 params->object = targetObject;
 			 params->method = method;
@@ -470,14 +521,18 @@ namespace nigiri
 			 	delete[] callParams;
 			 };
 			 execute(op,params);
-			 std::cout << ">>>> DEBUG: Object method returned" << std::endl;
+			 if(LOG_JVMFOREIGNRUNTIME) {
+			 	std::cout << ">>>> DEBUG: Object method returned" << std::endl;
+			 }
 			 return params->result;
 		}
 
 		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Type> targetType,
 									 std::shared_ptr<FR_Method> method,
 									 const std::vector<std::shared_ptr<FR_Object>> &parameters) {
-			std::cout << ">>>> DEBUG: Invoking type method ..." << std::endl;
+		 	if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << ">>>> DEBUG: Invoking type method ..." << std::endl;
+			}
 			auto params = std::make_shared<JVMOpParams_StaticMethodCall>();
 			params->type = targetType;
 			params->method = method;
@@ -565,14 +620,18 @@ namespace nigiri
 				delete[] callParams;
 			};
 			execute(op,params);
-			std::cout << ">>>> DEBUG: Type method returned" << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << ">>>> DEBUG: Type method returned" << std::endl;
+			}
 			return params->result;
 		}
 
 		std::shared_ptr<FR_Object> JVMForeignRuntime::createObject(std::shared_ptr<FR_Type> type,
 												std::shared_ptr<FR_Method> constructor,
 												const std::vector<std::shared_ptr<FR_Object>>& parameters) {
-			std::cout << ">>>> DEBUG: Creating object ..." << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << ">>>> DEBUG: Creating object ..." << std::endl;
+			}
 			auto params = std::make_shared<JVMOpParams_ObjectConstruction>();
 			params->type = type;
 			params->constructor = constructor;
@@ -592,7 +651,9 @@ namespace nigiri
 				delete[] callParams;
 			};
 			execute(op,params);
-			std::cout << ">>>> DEBUG: Object created" << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << ">>>> DEBUG: Object created" << std::endl;
+			}
 			return params->result;
 		}
 
@@ -604,29 +665,39 @@ namespace nigiri
 		}
 
 		void JVMForeignRuntime::notifyWorkPrepared() {
-			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Work prepared" << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Work prepared" << std::endl;
+			}
 			controlData.stateMachine.submitEvent(JVMEvent::Work_Prepared);
         }
 
 		void JVMForeignRuntime::waitForWorkCompleted() {
             controlData.stateMachine.waitForState(JVMState::WorkCompleted);
-			std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Work completed" << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Work completed" << std::endl;
+			}
 			controlData.stateMachine.submitEvent(JVMEvent::Work_Idle);
          }
 
 			bool JVMForeignRuntime::isAvailable(){
 			JVMState state = controlData.stateMachine.getState();
 			if(state == JVMState::Started || state == JVMState::WorkCompleted) {
-				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - System ready for work" << std::endl;
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - System ready for work" << std::endl;
+				}
 				return true;
 			} else {
-				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - System not ready for work, current state: " << getStateString(state) << std::endl;
-			 	return false;
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - System not ready for work, current state: " << getStateString(state) << std::endl;
+				}
+				return false;
 		 	}
 		}
 
 		JVMForeignRuntime::ControlData::~ControlData() {
-			std::cout << "DEBUG - JVMForeignRuntime::ControlData - dtor" << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << "DEBUG - JVMForeignRuntime::ControlData - dtor" << std::endl;
+			}
 		}
 
 		std::shared_ptr<FR_Object> JVMForeignRuntime::wrapPrimitive(uint16_t value) {
@@ -686,7 +757,9 @@ namespace nigiri
 		}
 
 		std::string JVMForeignRuntime::extractString(std::shared_ptr<JVMObject> obj){
-			std::cout << ">>>> DEBUG: Extracting string ..." << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << ">>>> DEBUG: Extracting string ..." << std::endl;
+			}
 			auto params = std::make_shared<JVMOpParams_StringExtraction>();
 			params->target = obj;
 			auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
@@ -700,7 +773,9 @@ namespace nigiri
 				delete[] data;
 			};
 			execute(op,params);
-			std::cout << ">>>> DEBUG: String extracted" << std::endl;
+			if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << ">>>> DEBUG: String extracted" << std::endl;
+			}
 			return params->result;
 		}
 

@@ -34,8 +34,9 @@ public:
     };
 
     ~_StateMachine(){
-		std::string msg = "DEBUG - nigiri::StateMachine - dtor";
-		std::cout << msg << std::endl;
+        #ifdef LOG_NIGIRI_STATEMACHINE
+        std::cout << "DEBUG - nigiri::StateMachine - dtor" << std::endl;
+        #endif
     }
 
     TState getState(){
@@ -44,48 +45,61 @@ public:
 
     void submitEvent(TEvent event){
         if(isEventValid(event)){
+            #ifdef LOG_NIGIRI_STATEMACHINE
             if(eventToStringFunc){
                 std::string msg = "StateMachine - Submitting event \"" + eventToStringFunc(event) + "\"";
                 std::cout << msg << std::endl;
             }
+            TState oldState = state;
+            #endif
             std::lock_guard<std::mutex> guard(mtx);
-			TState oldState = state;
             state = topology[state][event];
-			if (eventToStringFunc && stateToStringFunc) {
+            #ifdef LOG_NIGIRI_STATEMACHINE
+            if (eventToStringFunc && stateToStringFunc) {
 				std::string msg = "StateMachine - ";
 				msg += "Event \"" + eventToStringFunc(event) + "\" changed state from \"" + stateToStringFunc(oldState) + "\" to \"" + stateToStringFunc(state) + "\"";
 				std::cout << msg << std::endl;
 			}
+            #endif
             cv.notify_one();
+            #ifdef LOG_NIGIRI_STATEMACHINE
             if(eventToStringFunc){
                 std::string msg = "StateMachine - Event \"" + eventToStringFunc(event) + "\" submitted";
                 std::cout << msg << std::endl;
             }
+            #endif
         }
     };
 
     void waitForState(TState waitState){
+        #ifdef LOG_NIGIRI_STATEMACHINE
         if(stateToStringFunc){
             std::string msg = "StateMachine - Waiting for state \"" + stateToStringFunc(waitState) + "\"";
 			std::cout << msg << std::endl;
         }
+        #endif
         std::unique_lock<std::mutex> lock(mtx);
         TState* statePtr = &state;
         cv.wait(lock,[statePtr,waitState](){
 			StateValue requiredStateValue = static_cast<StateValue>(waitState);
 			StateValue currentStateValue = static_cast<StateValue>(*statePtr);
-			std::string msg = "StateMachine - State check - ";
+            #ifdef LOG_NIGIRI_STATEMACHINE
+            std::string msg = "StateMachine - State check - ";
 			msg += "Required: \"" + std::to_string(requiredStateValue) + "\", Current: \"" + std::to_string(currentStateValue) + "\"";
 			std::cout << msg << std::endl;
+            #endif
 			return waitState == *statePtr;
         });
+        #ifdef LOG_NIGIRI_STATEMACHINE
         if(stateToStringFunc){
             std::string msg = "StateMachine - State \"" + stateToStringFunc(waitState) + "\" reached";
             std::cout << msg << std::endl;
         }
+        #endif
     };
 
     void waitForStates(std::initializer_list<TState> waitStates){
+        #ifdef LOG_NIGIRI_STATEMACHINE
         if(stateToStringFunc){
             std::string msg =" StateMachine - Waiting for ";
             for(auto waitState : waitStates){
@@ -93,6 +107,7 @@ public:
             }
             std::cout << msg << std::endl;
         }
+        #endif
         std::unique_lock<std::mutex> lock(mtx);
 		bool condition = true;
 		while (condition) {
@@ -101,17 +116,21 @@ public:
 				if (waitState == state) {
 					StateValue requiredStateValue = static_cast<StateValue>(waitState);
 					StateValue currentStateValue = static_cast<StateValue>(state);
-					std::string msg = "StateMachine - State check - ";
+                    #ifdef LOG_NIGIRI_STATEMACHINE
+                    std::string msg = "StateMachine - State check - ";
 					msg += "Required: \"" + std::to_string(requiredStateValue) + "\", Current: \"" + std::to_string(currentStateValue) + "\"";
 					std::cout << msg << std::endl;
+                    #endif
 					condition = false;
 				}
 			}
 		}
+        #ifdef LOG_NIGIRI_STATEMACHINE
         if(stateToStringFunc){
             std::string stateString = "\"" + stateToStringFunc(state) + "\"";
             std::cout << "StateMachine - State " << stateString << " reached" << std::endl;
         }
+        #endif
     };
 
     void addConnection(TState fromState, TEvent cause, TState toState){
@@ -145,17 +164,20 @@ private:
         }
         auto fromSearch = topology.find(state);
         if(fromSearch == topology.end()){
+            #ifdef LOG_NIGIRI_STATEMACHINE
             std::cout << "Current state" << stateString << " do not have any connections" << std::endl;
+            #endif
             return false;
         }
         auto stateTopology = fromSearch->second;
         auto eventSearch = stateTopology.find(event);
-        std::string eventString = "";
-        if(eventToStringFunc != nullptr){
-            eventString = "\"" + eventToStringFunc(event) + "\"";
-        }
         if(eventSearch == stateTopology.end()) {
-            std::cout << "Current state" << stateString << " do not respond to provided event" << eventString << std::endl;
+            #ifdef LOG_NIGIRI_STATEMACHINE
+            if(eventToStringFunc != nullptr){
+                std::string eventString = "\"" + eventToStringFunc(event) + "\"";
+                std::cout << "Current state" << stateString << " do not respond to provided event" << eventString << std::endl;
+            }
+            #endif
             return false;
         }
         return true;
