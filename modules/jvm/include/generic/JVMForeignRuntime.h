@@ -151,6 +151,9 @@ namespace nigiri {
 	                                           const std::shared_ptr<FR_Type> returnType);
             void execute(JVMOp jvmOp, std::shared_ptr<JVMOpParams> params);
 			std::string extractString(std::shared_ptr<JVMObject> obj);
+			void check(const std::shared_ptr<FR_Type>& type);
+			void check(const std::shared_ptr<FR_Method>& method);
+			void check(const std::shared_ptr<FR_Object>& object);
             FR_Id id;
             struct ControlData
 			{

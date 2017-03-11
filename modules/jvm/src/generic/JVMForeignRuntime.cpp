@@ -1,5 +1,6 @@
 #include <nigiri.h>
 #include <vector>
+#include <stdexcept>
 #include <algorithm>
 #include "JVMForeignRuntime.h"
 #include "JVMPrimitives.h"
@@ -10,6 +11,8 @@ namespace nigiri
 {
 	namespace internal
 	{
+
+
 
 		// JVMType /////////////////////////////////////////////////////////////
 
@@ -332,6 +335,11 @@ namespace nigiri
 																   const std::string &name,
 																   const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
 																   const std::shared_ptr<FR_Type> returnType) {
+			check(targetObject);
+			for(auto parameterType : parametersTypes) {
+				check(parameterType);
+			}
+			check(returnType);
 			std::string methodSignature = prepareMethodSignature(parametersTypes,returnType);
 			if(LOG_JVMFOREIGNRUNTIME) {
 				std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
@@ -368,6 +376,11 @@ namespace nigiri
 																   const std::string &name,
 																   const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
                                                                    const std::shared_ptr<FR_Type> returnType) {
+			check(targetType);
+			for(auto parameterType : parametersTypes) {
+				check(parameterType);
+			}
+			check(returnType);
             std::string methodSignature = prepareMethodSignature(parametersTypes,returnType);
 			if(LOG_JVMFOREIGNRUNTIME) {
 				std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
@@ -402,6 +415,10 @@ namespace nigiri
 
 		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupConstructor(std::shared_ptr<FR_Type> targetType,
 													 const std::vector<std::shared_ptr<FR_Type>>& parametersTypes) {
+			check(targetType);
+			for(auto parameterType : parametersTypes) {
+				check(parameterType);
+			}
 		    std::string methodSignature = prepareMethodSignature(parametersTypes,nullptr);
 			if(LOG_JVMFOREIGNRUNTIME) {
 				std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
@@ -437,6 +454,11 @@ namespace nigiri
 		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Object> targetObject,
 									 std::shared_ptr<FR_Method> method,
 									 const std::vector<std::shared_ptr<FR_Object>> &parameters) {
+			 check(targetObject);
+			 check(method);
+			 for(auto parameter : parameters) {
+			 	check(parameter);
+			 }
 			 auto targetObjectType = std::static_pointer_cast<JVMType>(targetObject->getType());
 			 if(targetObjectType->isPrimitive()){
 				 throw "Attempt to call method on primitive type value";
@@ -540,6 +562,11 @@ namespace nigiri
 		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Type> targetType,
 									 std::shared_ptr<FR_Method> method,
 									 const std::vector<std::shared_ptr<FR_Object>> &parameters) {
+			check(targetType);
+			check(method);
+			for(auto parameter : parameters) {
+				check(parameter);
+			}
 		 	if(LOG_JVMFOREIGNRUNTIME) {
 				std::cout << ">>>> DEBUG: Invoking type method ..." << std::endl;
 			}
@@ -639,6 +666,11 @@ namespace nigiri
 		std::shared_ptr<FR_Object> JVMForeignRuntime::createObject(std::shared_ptr<FR_Type> type,
 												std::shared_ptr<FR_Method> constructor,
 												const std::vector<std::shared_ptr<FR_Object>>& parameters) {
+			check(type);
+			check(constructor);
+			for(auto parameter : parameters) {
+			 	check(parameter);
+			}
 			if(LOG_JVMFOREIGNRUNTIME) {
 				std::cout << ">>>> DEBUG: Creating object ..." << std::endl;
 			}
@@ -797,6 +829,7 @@ namespace nigiri
 		}
 
 		std::string JVMForeignRuntime::toString(std::shared_ptr<FR_Object> obj) {
+			check(obj);
 			auto jvmObjectBase = std::static_pointer_cast<JVMObjectBase>(obj);
 			auto jvmType = std::static_pointer_cast<JVMType>(obj->getType());
 			if(jvmType->isPrimitive()) {
@@ -810,6 +843,29 @@ namespace nigiri
 				}
 			}
 		}
+
+		void JVMForeignRuntime::check(const std::shared_ptr<FR_Type>& type) {
+			if(type == nullptr) {
+				throw std::invalid_argument("Type is nullptr");
+			} else if(type->getRuntimeId() != getId()) {
+				throw RuntimeIDMispatch("Provided type do not belongs to this foreign runtime");
+			}
+		}
+		void JVMForeignRuntime::check(const std::shared_ptr<FR_Method>& method) {
+			if(method == nullptr) {
+				throw std::invalid_argument("Method is nullptr");
+			} else if(method->getRuntimeId() != getId()) {
+				throw RuntimeIDMispatch("Provided method do not belongs to this foreign runtime");
+			}
+		}
+		void JVMForeignRuntime::check(const std::shared_ptr<FR_Object>& object) {
+			if(object == nullptr) {
+				throw std::invalid_argument("Object is nullptr");
+			} else if(object->getRuntimeId() != getId()) {
+				throw RuntimeIDMispatch("Provided object do not belongs to this foreign runtime");
+			}
+		}
+
 
 		std::string getThreadIdString(std::thread::id tid){
 	        static std::hash<std::thread::id> hasher;
