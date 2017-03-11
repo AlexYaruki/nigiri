@@ -157,6 +157,7 @@ namespace nigiri {
 			void check(const std::shared_ptr<FR_Method>& method);
 			void check(const std::shared_ptr<FR_Object>& object);
             FR_Id id;
+			std::map<std::string,std::shared_ptr<FR_Type>> typeCache;
             struct ControlData
 			{
 				~ControlData();

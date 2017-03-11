@@ -289,6 +289,11 @@ namespace nigiri
                 return TYPE_DOUBLE;
             }
 
+			auto search = typeCache.find(name);
+			if(search != typeCache.end()) {
+				return search->second;
+			}
+
 			std::shared_ptr<JVMOpParams_TypeLookup> params = std::make_shared<JVMOpParams_TypeLookup>();
 
 			params->typeName = name;
@@ -315,6 +320,9 @@ namespace nigiri
 				}
 			};
 			execute(op,params);
+			if(params->type != nullptr) {
+				typeCache.insert({name,params->type});
+			}
 			return params->type;
 		}
 
