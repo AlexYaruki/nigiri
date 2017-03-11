@@ -47,13 +47,15 @@ namespace nigiri {
 
         class JVMMethod : public nigiri::FR_Method {
         public:
-            JVMMethod(FR_Id, jmethodID, std::shared_ptr<FR_Type>);
+            JVMMethod(FR_Id, jmethodID, std::shared_ptr<FR_Type>, std::shared_ptr<FR_Type>);
             FR_Id getRuntimeId();
             jmethodID getMethod();
+	        std::shared_ptr<FR_Type> getType();
 			std::shared_ptr<FR_Type> getReturnType();
         private:
             FR_Id runtimeId;
             jmethodID method;
+			std::shared_ptr<FR_Type> type;
 			std::shared_ptr<FR_Type> returnType;
         };
 

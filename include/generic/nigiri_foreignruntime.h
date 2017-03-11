@@ -22,9 +22,16 @@
 
 namespace nigiri {
 
-    class RuntimeIDMispatch : public std::exception {
+    class RuntimeIDMismatch : public std::exception {
     public:
-        RuntimeIDMispatch(const std::string& msg) throw();
+        RuntimeIDMismatch(const std::string& msg) throw();
+        const char* what() const throw() override;
+    private:
+        std::string reason;
+    };
+
+    class TypeCorrelationMismatch : public std::exception {
+        TypeCorrelationMismatch(const std::string& msg) throw();
         const char* what() const throw() override;
     private:
         std::string reason;
@@ -67,6 +74,7 @@ namespace nigiri {
     public:
         virtual ~FR_Method() = default;
         virtual FR_Id getRuntimeId() = 0;
+        virtual std::shared_ptr<FR_Type> getType() = 0;
     };
 
     class NIGIRI_EXPORT ForeignRuntime {

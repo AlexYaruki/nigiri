@@ -115,7 +115,7 @@ namespace nigiri
 
 		// JVMMethod ////////////////////////////////////////////////////////////
 
-        JVMMethod::JVMMethod(FR_Id id, jmethodID method, std::shared_ptr<FR_Type> rT): runtimeId(id), method(method), returnType(rT) {}
+        JVMMethod::JVMMethod(FR_Id id, jmethodID method,std::shared_ptr<FR_Type> t, std::shared_ptr<FR_Type> rT): runtimeId(id), method(method), type(t), returnType(rT) {}
 
         jmethodID JVMMethod::getMethod() {
             return method;
@@ -124,6 +124,10 @@ namespace nigiri
         FR_Id JVMMethod::getRuntimeId() {
             return runtimeId;
         }
+
+		std::shared_ptr<FR_Type> JVMMethod::getType() {
+			return type;
+		}
 
 		std::shared_ptr<FR_Type> JVMMethod::getReturnType() {
 			return returnType;
@@ -369,7 +373,7 @@ namespace nigiri
 			if(params->method == nullptr) {
 				return nullptr;
 			}
-			return std::make_shared<JVMMethod>(getId(),params->method,returnType);
+			return std::make_shared<JVMMethod>(getId(),params->method,targetObject->getType(), returnType);
 		}
 
 		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupMethod(std::shared_ptr<FR_Type> targetType,
@@ -410,7 +414,7 @@ namespace nigiri
 			if(params->method == nullptr) {
 				return nullptr;
 			}
-            return std::make_shared<JVMMethod>(getId(),params->method,returnType);
+            return std::make_shared<JVMMethod>(getId(),params->method,targetType,returnType);
 		}
 
 		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupConstructor(std::shared_ptr<FR_Type> targetType,
@@ -448,7 +452,7 @@ namespace nigiri
 			if(params->method == nullptr) {
 				return nullptr;
 			}
-			return std::make_shared<JVMMethod>(getId(),params->method,nullptr);
+			return std::make_shared<JVMMethod>(getId(),params->method,targetType,nullptr);
 		}
 
 		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Object> targetObject,
@@ -671,6 +675,9 @@ namespace nigiri
 			for(auto parameter : parameters) {
 			 	check(parameter);
 			}
+			if(constructor->getType() != type) {
+
+			}
 			if(LOG_JVMFOREIGNRUNTIME) {
 				std::cout << ">>>> DEBUG: Creating object ..." << std::endl;
 			}
@@ -848,21 +855,21 @@ namespace nigiri
 			if(type == nullptr) {
 				throw std::invalid_argument("Type is nullptr");
 			} else if(type->getRuntimeId() != getId()) {
-				throw RuntimeIDMispatch("Provided type do not belongs to this foreign runtime");
+				throw RuntimeIDMismatch("Provided type do not belongs to this foreign runtime");
 			}
 		}
 		void JVMForeignRuntime::check(const std::shared_ptr<FR_Method>& method) {
 			if(method == nullptr) {
 				throw std::invalid_argument("Method is nullptr");
 			} else if(method->getRuntimeId() != getId()) {
-				throw RuntimeIDMispatch("Provided method do not belongs to this foreign runtime");
+				throw RuntimeIDMismatch("Provided method do not belongs to this foreign runtime");
 			}
 		}
 		void JVMForeignRuntime::check(const std::shared_ptr<FR_Object>& object) {
 			if(object == nullptr) {
 				throw std::invalid_argument("Object is nullptr");
 			} else if(object->getRuntimeId() != getId()) {
-				throw RuntimeIDMispatch("Provided object do not belongs to this foreign runtime");
+				throw RuntimeIDMismatch("Provided object do not belongs to this foreign runtime");
 			}
 		}
 

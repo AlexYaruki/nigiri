@@ -58,11 +58,19 @@ namespace {
 
 namespace nigiri {
 
-    RuntimeIDMispatch::RuntimeIDMispatch(const std::string& msg) throw() : reason(msg) {
+    RuntimeIDMismatch::RuntimeIDMismatch(const std::string& msg) throw() : reason(msg) {
 
     }
 
-    const char* RuntimeIDMispatch::what() const throw() {
+    const char* RuntimeIDMismatch::what() const throw() {
+        return reason.c_str();
+    }
+
+    TypeCorrelationMismatch::TypeCorrelationMismatch(const std::string& msg) throw() : reason(msg) {
+
+    }
+
+    const char* TypeCorrelationMismatch::what() const throw() {
         return reason.c_str();
     }
 
