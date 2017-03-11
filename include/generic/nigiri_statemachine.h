@@ -11,6 +11,8 @@
 
 namespace nigiri {
 
+// #define LOG_NIGIRI_STATEMACHINE
+
 template<typename TState,
         typename TEvent,
         TState initialState,

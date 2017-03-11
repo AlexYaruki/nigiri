@@ -1,5 +1,4 @@
 #include <cstring>
-#include <cassert>
 #include <nigiri.h>
 #include "JVMThread.h"
 

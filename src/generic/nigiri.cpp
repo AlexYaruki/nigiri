@@ -58,6 +58,14 @@ namespace {
 
 namespace nigiri {
 
+    RuntimeIDMispatch::RuntimeIDMispatch(const std::string& msg) throw() : reason(msg) {
+
+    }
+
+    const char* RuntimeIDMispatch::what() const throw() {
+        return reason.c_str();
+    }
+
     bool ForeignRuntimeManager::isCategoryAvailable(const std::string &name) {
         auto search = categoryMap.find(name);
         if(search == categoryMap.end()){

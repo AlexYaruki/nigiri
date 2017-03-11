@@ -304,6 +304,7 @@ namespace nigiri
 					if(LOG_JVMFOREIGNRUNTIME) {
 	                	std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") not found" << std::endl;
 					}
+					typeLookupParams->type = nullptr;
 				}
 			};
 			execute(op,params);
@@ -357,6 +358,9 @@ namespace nigiri
 				methodLookupParams->method = method;
 			};
 			execute(op,params);
+			if(params->method == nullptr) {
+				return nullptr;
+			}
 			return std::make_shared<JVMMethod>(getId(),params->method,returnType);
 		}
 
@@ -380,16 +384,19 @@ namespace nigiri
 				}
 				auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
                 jmethodID method = env->GetStaticMethodID(type->getType(),methodLookupParams->methodName.c_str(),methodLookupParams->methodSignature.c_str());
-				if(LOG_JVMFOREIGNRUNTIME) {
+				//if(LOG_JVMFOREIGNRUNTIME) {
 					if(method != nullptr) {
 	                    std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") found" << std::endl;
 	                } else {
 	                    std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") not found" << std::endl;
 	                }
-				}
+				//}
                 methodLookupParams->method = method;
             };
             execute(op,params);
+			if(params->method == nullptr) {
+				return nullptr;
+			}
             return std::make_shared<JVMMethod>(getId(),params->method,returnType);
 		}
 
@@ -421,6 +428,9 @@ namespace nigiri
 				methodLookupParams->method = method;
 			};
 			execute(op,params);
+			if(params->method == nullptr) {
+				return nullptr;
+			}
 			return std::make_shared<JVMMethod>(getId(),params->method,nullptr);
 		}
 
@@ -640,15 +650,22 @@ namespace nigiri
 				auto staticMethodCall_params = std::static_pointer_cast<JVMOpParams_StaticMethodCall>(opParams);
 				auto jvmType = std::static_pointer_cast<JVMType>(staticMethodCall_params->type);
 				auto jvmMethod = std::static_pointer_cast<JVMMethod>(staticMethodCall_params->method);
-				auto callParams = new jvalue[staticMethodCall_params->parameters->size()];
-				for(size_t i = 0; i < staticMethodCall_params->parameters->size(); i++) {
-					auto jvmParam = std::static_pointer_cast<JVMObjectBase>(staticMethodCall_params->parameters->at(i));
-					callParams[i] = jvmParam->toValue();
+				jobject result;
+				if(staticMethodCall_params->parameters->size() > 0) {
+					auto callParams = new jvalue[staticMethodCall_params->parameters->size()];
+					for(size_t i = 0; i < staticMethodCall_params->parameters->size(); i++) {
+						auto jvmParam = std::static_pointer_cast<JVMObjectBase>(staticMethodCall_params->parameters->at(i));
+						callParams[i] = jvmParam->toValue();
+					}
+					auto returnType = jvmMethod->getReturnType();
+					result = env->NewObjectA(jvmType->getType(),jvmMethod->getMethod(),callParams);
+					delete[] callParams;
+
+				} else {
+					std::cout << "No argument constructor" << std::endl;
+					result = env->NewObject(jvmType->getType(),jvmMethod->getMethod());
 				}
-				auto returnType = jvmMethod->getReturnType();
-				jobject result = env->NewObjectA(jvmType->getType(),jvmMethod->getMethod(),callParams);
 				staticMethodCall_params->result = std::make_shared<JVMObject>(result,jvmType,getId());
-				delete[] callParams;
 			};
 			execute(op,params);
 			if(LOG_JVMFOREIGNRUNTIME) {

@@ -22,6 +22,14 @@
 
 namespace nigiri {
 
+    class RuntimeIDMispatch : public std::exception {
+    public:
+        RuntimeIDMispatch(const std::string& msg) throw();
+        const char* what() const throw() override;
+    private:
+        std::string reason;
+    };
+
     using FR_LOADER_FUNC_TYPE = void*(*)(void);
     using FR_Id = uint64_t;
     const std::string FR_LOADER_FUNC_NAME = "fr_loader";
