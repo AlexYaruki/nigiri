@@ -37,7 +37,7 @@ int main() {
         return -1;
     }
     auto jvm = nigiri::ForeignRuntimeManager::createRuntime("jvm");
-    jvm->start();
+    jvm->start({"nigiri.jar"});
     auto type_long = jvm->lookupType("long");
     auto type_java_lang_System = jvm->lookupType("java.lang.System");
 	check(type_java_lang_System, "Cannot find java.lang.System");
@@ -70,5 +70,19 @@ int main() {
     auto str = jvm->call(date,method_Date_toString,{});
     std::cout << "Type(toString): " << str->getType()->getName() << std::endl;
     std::cout << "Value(toString): " << jvm->toString(str) << std::endl;
+
+    auto type_Point = jvm->lookupType("nigiri.Point");
+    check(type_Point, "Cannot find nigiri.Point");
+    auto type_int = jvm->lookupType("int");
+    check(type_Point, "Cannot find int");
+    auto constructor_Point = jvm->lookupConstructor(type_Point,{type_int, type_int});
+    check(constructor_Point, "Cannot find Point(int,int)");
+    auto point = jvm->createObject(type_Point,constructor_Point,
+        {
+            jvm->wrapPrimitive(1),
+            jvm->wrapPrimitive(3)
+        });
+    check(point, "point is nullptr");
+
     return 0;
 }

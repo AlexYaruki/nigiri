@@ -14,7 +14,7 @@ namespace nigiri
 		public:
 			JVMThread(JVMForeignRuntime::ControlData* controlData);
 			~JVMThread();
-			bool createJVM();
+			bool createJVM(const std::initializer_list<std::string>& resources);
 			void notifyInit();
 			void notifyRollback();
 			void quit();

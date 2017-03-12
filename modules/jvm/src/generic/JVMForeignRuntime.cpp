@@ -183,18 +183,18 @@ namespace nigiri
 			}
 		}
 
-		bool JVMForeignRuntime::start()
+		bool JVMForeignRuntime::start(const std::initializer_list<std::string>& resources)
 		{
 			if(LOG_JVMFOREIGNRUNTIME) {
             	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Starting JVM ..." << std::endl;
 			}
-			jvmThread = std::thread([](ControlData* controlData_)
+			jvmThread = std::thread([&resources](ControlData* controlData_)
 			{
 				if (LOG_JVMTHREAD) {
 					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Start of JVMThread" << std::endl;
 				}
 				JVMThread jvmThread(controlData_);
-				bool jvmCreated = jvmThread.createJVM();
+				bool jvmCreated = jvmThread.createJVM(resources);
 				if (!jvmCreated)
 				{
 					if(LOG_JVMTHREAD) {

@@ -81,7 +81,7 @@ namespace nigiri {
     public:
         virtual ~ForeignRuntime() = default;
         virtual FR_Id getId() = 0;
-        virtual bool start() = 0;
+        virtual bool start(const std::initializer_list<std::string>& resources) = 0;
         virtual void stop() = 0;
         virtual bool isRunning() = 0;
         virtual std::shared_ptr<FR_Type> lookupType(const std::string& name) = 0;

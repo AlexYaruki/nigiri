@@ -5,6 +5,7 @@
 
 #include <jni.h>
 #include <iostream>
+#include <map>
 
 #include <nigiri_foreignruntime.h>
 #include <nigiri_statemachine.h>
@@ -101,7 +102,7 @@ namespace nigiri {
 			JVMForeignRuntime(FR_Id id);
 			~JVMForeignRuntime();
             FR_Id getId() override;
-			bool start() override;
+			bool start(const std::initializer_list<std::string>& resources) override;
 			void stop() override;
             bool isRunning() override;
 
@@ -156,6 +157,7 @@ namespace nigiri {
 			void check(const std::shared_ptr<FR_Type>& type);
 			void check(const std::shared_ptr<FR_Method>& method);
 			void check(const std::shared_ptr<FR_Object>& object);
+
             FR_Id id;
 			std::map<std::string,std::shared_ptr<FR_Type>> typeCache;
             struct ControlData
