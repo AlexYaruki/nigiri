@@ -45,7 +45,7 @@ message(STATUS "Input files: ${INPUT_FILES}")
 if( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Werror -pedantic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall -Werror -pedantic")
     add_definitions("-D${PROJECT_SHARED_DEFINITION}")
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     ##set(INPUT_FILES ${INPUT_FILES} ${HEADERS})

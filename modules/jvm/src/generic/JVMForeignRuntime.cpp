@@ -12,8 +12,6 @@ namespace nigiri
 	namespace internal
 	{
 
-
-
 		// JVMType /////////////////////////////////////////////////////////////
 
         JVMType::JVMType(FR_Id id, jclass type_, std::string typeName, std::string sName) {
@@ -23,9 +21,7 @@ namespace nigiri
 			signatureName = sName;
         }
 
-        JVMType::~JVMType() {
-
-        }
+        JVMType::~JVMType() {}
 
         FR_Id JVMType::getRuntimeId() {
             return runtimeId;
@@ -45,6 +41,46 @@ namespace nigiri
 
 		bool JVMType::isPrimitive() {
 			return primitive;
+		}
+
+		//TODO: Respect Java language scope
+		const StaticMethodCaller& JVMType::getStaticMethodCaller() {
+			static StaticMethodCaller caller = [](auto env, auto targetType, auto method, auto jniParams) {
+				auto obj = env->CallStaticObjectMethodA(targetType->getType(),method->getMethod(),jniParams);
+				auto jvmReturnType = std::static_pointer_cast<JVMType>(method->getReturnType());
+				return std::make_shared<JVMObject>(obj,jvmReturnType,targetType->getRuntimeId());
+			};
+			return caller;
+		}
+
+		//TODO: Respect Java language scope
+		const InstanceMethodCaller& JVMType::getInstanceMethodCaller() {
+			static InstanceMethodCaller caller = [](auto env, auto targetObject, auto method, auto jniParams) {
+				auto obj = env->CallObjectMethodA(targetObject->getObject(),method->getMethod(),jniParams);
+				auto jvmReturnType = std::static_pointer_cast<JVMType>(method->getReturnType());
+				return std::make_shared<JVMObject>(obj,jvmReturnType,targetObject->getRuntimeId());
+			};
+			return caller;
+		}
+
+		//TODO: Respect Java language scope
+		const StaticFieldAccessor& JVMType::getStaticFieldAccessor() {
+			static StaticFieldAccessor accessor = [](auto env, auto targetType, auto field) {
+				auto obj = env->GetStaticObjectField(targetType->getType(), field->getField());
+				auto jvmFieldType = std::static_pointer_cast<JVMType>(field->getFieldType());
+				return std::make_shared<JVMObject>(obj,jvmFieldType,targetType->getRuntimeId());
+			};
+			return accessor;
+		}
+
+		//TODO: Respect Java language scope
+		const InstanceFieldAccessor& JVMType::getInstanceFieldAccessor() {
+			static InstanceFieldAccessor accessor = [](auto env, auto targetObject, auto field) {
+				auto obj = env->GetObjectField(targetObject->getObject(), field->getField());
+				auto jvmFieldType = std::static_pointer_cast<JVMType>(field->getFieldType());
+				return std::make_shared<JVMObject>(obj,jvmFieldType,targetObject->getRuntimeId());
+			};
+			return accessor;
 		}
 
 		/////////////////////////////////////////////////////////////////////////
@@ -135,6 +171,30 @@ namespace nigiri
 
 		/////////////////////////////////////////////////////////////////////////
 
+		// JVMField ////////////////////////////////////////////////////////////
+
+		JVMField::JVMField(FR_Id id, jfieldID field, std::shared_ptr<FR_Type> parentType, std::shared_ptr<FR_Type> type): runtimeId(runtimeId),
+
+		jfieldID JVMField::getField() {
+			return field;
+		}
+
+		FR_Id JVMField::getRuntimeId() {
+			return runtimeId;
+		}
+
+		std::shared_ptr<FR_Type> JVMField::getParentType() {
+			return parentType;
+		}
+
+		std::shared_ptr<FR_Type> JVMField::getType() {
+			return type;
+		}
+
+
+		/////////////////////////////////////////////////////////////////////////
+
+
 		JVMForeignRuntime::JVMForeignRuntime(FR_Id id_){
 			id = id_;
 
@@ -172,8 +232,7 @@ namespace nigiri
 			stop();
 		}
 
-		void JVMForeignRuntime::waitForInitialization()
-		{
+		void JVMForeignRuntime::waitForInitialization() {
 			if(LOG_JVMFOREIGNRUNTIME) {
             	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Waiting for JVM startup ..." << std::endl;
 			}
@@ -183,8 +242,7 @@ namespace nigiri
 			}
 		}
 
-		bool JVMForeignRuntime::start(const std::initializer_list<std::string>& resources)
-		{
+		bool JVMForeignRuntime::start(const std::initializer_list<std::string>& resources) {
 			if(LOG_JVMFOREIGNRUNTIME) {
             	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Starting JVM ..." << std::endl;
 			}
@@ -240,8 +298,7 @@ namespace nigiri
 				   (state != JVMState::Shutdown);
 		}
 
-		void JVMForeignRuntime::stop()
-		{
+		void JVMForeignRuntime::stop() {
 			if(LOG_JVMFOREIGNRUNTIME) {
 				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Beginning of JVMThread shutdown" << std::endl;
 			}
@@ -343,383 +400,426 @@ namespace nigiri
             return signature;
         }
 
-		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupMethod(std::shared_ptr<FR_Object> targetObject,
-																   const std::string &name,
-																   const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
-																   const std::shared_ptr<FR_Type> returnType) {
-			check(targetObject);
-			for(auto parameterType : parametersTypes) {
-				check(parameterType);
-			}
-			check(returnType);
-			std::string methodSignature = prepareMethodSignature(parametersTypes,returnType);
-			if(LOG_JVMFOREIGNRUNTIME) {
-				std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
-				std::cout << ">>>> DEBUG: Looking for method: (" << name << ")" << std::endl;
-			}
-			auto params = std::make_shared<JVMOpParams_MethodLookup>();
-			params->type = targetObject->getType();
-			params->methodName = name;
-			params->methodSignature = methodSignature;
-			auto op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
-				auto methodLookupParams = std::static_pointer_cast<JVMOpParams_MethodLookup>(opParams);
-				if(LOG_JVMFOREIGNRUNTIME) {
-                	std::cout << ">>>> DEBUG: Looking for method: (" << methodLookupParams->methodName << ")" << std::endl;
-				}
-				auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
-				jmethodID method = env->GetMethodID(type->getType(),methodLookupParams->methodName.c_str(),methodLookupParams->methodSignature.c_str());
-				if(LOG_JVMFOREIGNRUNTIME) {
-	            	if(method != nullptr) {
-						std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") found" << std::endl;
-					} else {
-						std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") not found" << std::endl;
-					}
-				}
-				methodLookupParams->method = method;
-			};
-			execute(op,params);
-			if(params->method == nullptr) {
-				return nullptr;
-			}
-			return std::make_shared<JVMMethod>(getId(),params->method,targetObject->getType(), returnType);
-		}
-
-		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupMethod(std::shared_ptr<FR_Type> targetType,
-																   const std::string &name,
-																   const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
-                                                                   const std::shared_ptr<FR_Type> returnType) {
-			check(targetType);
-			for(auto parameterType : parametersTypes) {
-				check(parameterType);
-			}
-			check(returnType);
-            std::string methodSignature = prepareMethodSignature(parametersTypes,returnType);
-			if(LOG_JVMFOREIGNRUNTIME) {
-				std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
-				std::cout << ">>>> DEBUG: Looking for method: (" << name << ")" << std::endl;
-			}
-			auto params = std::make_shared<JVMOpParams_MethodLookup>();
-            params->type = targetType;
-            params->methodName = name;
-			params->methodSignature = methodSignature;
-            auto op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
-                auto methodLookupParams = std::static_pointer_cast<JVMOpParams_MethodLookup>(opParams);
-				if(LOG_JVMFOREIGNRUNTIME) {
-					std::cout << ">>>> DEBUG: Looking for method: (" << methodLookupParams->methodName << ")" << std::endl;
-				}
-				auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
-                jmethodID method = env->GetStaticMethodID(type->getType(),methodLookupParams->methodName.c_str(),methodLookupParams->methodSignature.c_str());
-				//if(LOG_JVMFOREIGNRUNTIME) {
-					if(method != nullptr) {
-	                    std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") found" << std::endl;
-	                } else {
-	                    std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") not found" << std::endl;
-	                }
-				//}
-                methodLookupParams->method = method;
-            };
-            execute(op,params);
-			if(params->method == nullptr) {
-				return nullptr;
-			}
-            return std::make_shared<JVMMethod>(getId(),params->method,targetType,returnType);
-		}
-
 		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupConstructor(std::shared_ptr<FR_Type> targetType,
-													 const std::vector<std::shared_ptr<FR_Type>>& parametersTypes) {
-			check(targetType);
-			for(auto parameterType : parametersTypes) {
-				check(parameterType);
-			}
-		    std::string methodSignature = prepareMethodSignature(parametersTypes,nullptr);
-			if(LOG_JVMFOREIGNRUNTIME) {
-				std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
-				std::cout << ">>>> DEBUG: Looking for constructor ..." << std::endl;
-			}
-			auto params = std::make_shared<JVMOpParams_MethodLookup>();
-			params->type = targetType;
-			params->methodName = "<init>";
-			params->methodSignature = methodSignature;
-			auto op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
-				auto methodLookupParams = std::static_pointer_cast<JVMOpParams_MethodLookup>(opParams);
-				if(LOG_JVMFOREIGNRUNTIME) {
-					std::cout << ">>>> DEBUG: Looking for constructor: (" << methodLookupParams->methodName << ")" << std::endl;
+			const std::vector<std::shared_ptr<FR_Type>>& parametersTypes) {
+				check(targetType);
+				for(auto parameterType : parametersTypes) {
+					check(parameterType);
 				}
-				auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
-				jmethodID method = env->GetMethodID(type->getType(),methodLookupParams->methodName.c_str(),methodLookupParams->methodSignature.c_str());
+				std::string methodSignature = prepareMethodSignature(parametersTypes,nullptr);
 				if(LOG_JVMFOREIGNRUNTIME) {
-					if(method != nullptr) {
-				    	std::cout << ">>>> DEBUG: Constructor found" << std::endl;
-					} else {
-						std::cout << ">>>> DEBUG: Constructor not found" << std::endl;
+					std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
+					std::cout << ">>>> DEBUG: Looking for constructor ..." << std::endl;
+				}
+				auto params = std::make_shared<JVMOpParams_MethodLookup>();
+				params->type = targetType;
+				params->methodName = "<init>";
+				params->methodSignature = methodSignature;
+				auto op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
+					auto methodLookupParams = std::static_pointer_cast<JVMOpParams_MethodLookup>(opParams);
+					if(LOG_JVMFOREIGNRUNTIME) {
+						std::cout << ">>>> DEBUG: Looking for constructor: (" << methodLookupParams->methodName << ")" << std::endl;
 					}
+					auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
+					jmethodID method = env->GetMethodID(type->getType(),methodLookupParams->methodName.c_str(),methodLookupParams->methodSignature.c_str());
+					if(LOG_JVMFOREIGNRUNTIME) {
+						if(method != nullptr) {
+							std::cout << ">>>> DEBUG: Constructor found" << std::endl;
+						} else {
+							std::cout << ">>>> DEBUG: Constructor not found" << std::endl;
+						}
+					}
+					methodLookupParams->method = method;
+				};
+				execute(op,params);
+				if(params->method == nullptr) {
+					return nullptr;
 				}
-				methodLookupParams->method = method;
-			};
-			execute(op,params);
-			if(params->method == nullptr) {
-				return nullptr;
+				return std::make_shared<JVMMethod>(getId(),params->method,targetType,nullptr);
 			}
-			return std::make_shared<JVMMethod>(getId(),params->method,targetType,nullptr);
-		}
-
-		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Object> targetObject,
-									 std::shared_ptr<FR_Method> method,
-									 const std::vector<std::shared_ptr<FR_Object>> &parameters) {
-			 check(targetObject);
-			 check(method);
-			 for(auto parameter : parameters) {
-			 	check(parameter);
-			 }
-			 auto targetObjectType = std::static_pointer_cast<JVMType>(targetObject->getType());
-			 if(targetObjectType->isPrimitive()){
-				 throw "Attempt to call method on primitive type value";
-			 }
-			 if(LOG_JVMFOREIGNRUNTIME) {
-			 	std::cout << ">>>> DEBUG: Invoking object method ..." << std::endl;
-		 	 }
-			 auto params = std::make_shared<JVMOpParams_InstanceMethodCall>();
-			 params->object = targetObject;
-			 params->method = method;
-			 params->parameters = &parameters;
-			 auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
-			 	auto instanceMethodCall_params = std::static_pointer_cast<JVMOpParams_InstanceMethodCall>(opParams);
-			 	auto jvmObject = std::static_pointer_cast<JVMObject>(instanceMethodCall_params->object);
-			 	auto jvmMethod = std::static_pointer_cast<JVMMethod>(instanceMethodCall_params->method);
-			 	auto callParams = new jvalue[instanceMethodCall_params->parameters->size()];
-			 	for(size_t i = 0; i < instanceMethodCall_params->parameters->size(); i++) {
-			 		auto jvmParam = std::static_pointer_cast<JVMObjectBase>(instanceMethodCall_params->parameters->at(i));
-			 		callParams[i] = jvmParam->toValue();
-			 	}
-			 	auto returnType = jvmMethod->getReturnType();
-			 	if(returnType == nullptr) {
-			 		env->CallVoidMethodA(jvmObject->getObject(),
-			 								   jvmMethod->getMethod(),
-			 								   callParams);
-			 	} else if(!std::static_pointer_cast<JVMType>(returnType)->isPrimitive()) {
-			 		jobject obj = env->CallObjectMethodA(jvmObject->getObject(),
-			 												 jvmMethod->getMethod(),
-			 												 callParams);
-			 		instanceMethodCall_params->result = std::make_shared<JVMObject>(obj,
-			 																	  std::static_pointer_cast<JVMType>(returnType),
-			 																	  getId());
-			 	} else if(returnType == TYPE_CHAR){
-			 		jchar result = env->CallCharMethodA(jvmObject->getObject(),
-			 												  jvmMethod->getMethod(),
-			 												  callParams);
-			 		instanceMethodCall_params->result = std::make_shared<JVM_Char>(result,
-			 																	  std::static_pointer_cast<JVMType_Char>(returnType),
-			 																	  getId());
-			 	} else if(returnType == TYPE_BOOLEAN){
-			 		jboolean result = env->CallBooleanMethodA(jvmObject->getObject(),
-			 														jvmMethod->getMethod(),
-			 														callParams);
-			 		instanceMethodCall_params->result = std::make_shared<JVM_Boolean>(result == JNI_TRUE ? true : false,
-			 																	  std::static_pointer_cast<JVMType_Boolean>(returnType),
-			 																	  getId());
-			 	} else if(returnType == TYPE_INT8) {
-			 		jbyte result = env->CallByteMethodA(jvmObject->getObject(),
-			 												 jvmMethod->getMethod(),
-			 												 callParams);
-			 		instanceMethodCall_params->result = std::make_shared<JVM_Int8>(result,
-			 																	  std::static_pointer_cast<JVMType_Int8>(returnType),
-			 																	  getId());
-			 	} else if(returnType == TYPE_INT16) {
-			 		jshort result = env->CallShortMethodA(jvmObject->getObject(),
-			 												 jvmMethod->getMethod(),
-			 												 callParams);
-			 		instanceMethodCall_params->result = std::make_shared<JVM_Int16>(result,
-			 																	  std::static_pointer_cast<JVMType_Int16>(returnType),
-			 																	  getId());
-			 	} else if(returnType == TYPE_INT32) {
-			 		jint result = env->CallIntMethodA(jvmObject->getObject(),
-			 												 jvmMethod->getMethod(),
-			 												 callParams);
-			 		instanceMethodCall_params->result = std::make_shared<JVM_Int32>(result,
-			 																	  std::static_pointer_cast<JVMType_Int32>(returnType),
-			 																	  getId());
-			 	} else if(returnType == TYPE_INT64) {
-			 		jlong result = env->CallLongMethodA(jvmObject->getObject(),
-			 												 jvmMethod->getMethod(),
-			 												 callParams);
-			 		instanceMethodCall_params->result = std::make_shared<JVM_Int64>(result,
-			 																	  std::static_pointer_cast<JVMType_Int64>(returnType),
-			 																	  getId());
-			 	} else if(returnType == TYPE_FLOAT){
-			 		jfloat result = env->CallFloatMethodA(jvmObject->getObject(),
-			 												 jvmMethod->getMethod(),
-			 												 callParams);
-			 		instanceMethodCall_params->result = std::make_shared<JVM_Float>(result,
-			 																	  std::static_pointer_cast<JVMType_Float>(returnType),
-			 																	  getId());
-			 	} else if(returnType == TYPE_DOUBLE){
-			 		jdouble result = env->CallDoubleMethodA(jvmObject->getObject(),
-			 												 jvmMethod->getMethod(),
-			 												 callParams);
-			 		instanceMethodCall_params->result = std::make_shared<JVM_Double>(result,
-			 																	  std::static_pointer_cast<JVMType_Double>(returnType),
-			 																	  getId());
-			 	} else {
-			 		throw 42;
-			 	}
-			 	delete[] callParams;
-			 };
-			 execute(op,params);
-			 if(LOG_JVMFOREIGNRUNTIME) {
-			 	std::cout << ">>>> DEBUG: Object method returned" << std::endl;
-			 }
-			 return params->result;
-		}
-
-		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Type> targetType,
-									 std::shared_ptr<FR_Method> method,
-									 const std::vector<std::shared_ptr<FR_Object>> &parameters) {
-			check(targetType);
-			check(method);
-			for(auto parameter : parameters) {
-				check(parameter);
-			}
-		 	if(LOG_JVMFOREIGNRUNTIME) {
-				std::cout << ">>>> DEBUG: Invoking type method ..." << std::endl;
-			}
-			auto params = std::make_shared<JVMOpParams_StaticMethodCall>();
-			params->type = targetType;
-			params->method = method;
-			params->parameters = &parameters;
-			auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
-				auto staticMethodCall_params = std::static_pointer_cast<JVMOpParams_StaticMethodCall>(opParams);
-				auto jvmType = std::static_pointer_cast<JVMType>(staticMethodCall_params->type);
-				auto jvmMethod = std::static_pointer_cast<JVMMethod>(staticMethodCall_params->method);
-				auto callParams = new jvalue[staticMethodCall_params->parameters->size()];
-				for(size_t i = 0; i < staticMethodCall_params->parameters->size(); i++) {
-					auto jvmParam = std::static_pointer_cast<JVMObjectBase>(staticMethodCall_params->parameters->at(i));
-					callParams[i] = jvmParam->toValue();
-				}
-				auto returnType = jvmMethod->getReturnType();
-				if(returnType == nullptr) {
-					env->CallStaticVoidMethodA(jvmType->getType(),
-										       jvmMethod->getMethod(),
-									           callParams);
-				} else if(!std::static_pointer_cast<JVMType>(returnType)->isPrimitive()) {
-					jobject obj = env->CallStaticObjectMethodA(jvmType->getType(),
-										                     jvmMethod->getMethod(),
-									                         callParams);
-					staticMethodCall_params->result = std::make_shared<JVMObject>(obj,
-										 										  std::static_pointer_cast<JVMType>(returnType),
-										 										  getId());
-				} else if(returnType == TYPE_CHAR){
-				    jchar result = env->CallStaticCharMethodA(jvmType->getType(),
-										                      jvmMethod->getMethod(),
-									                          callParams);
-					staticMethodCall_params->result = std::make_shared<JVM_Char>(result,
-										                                          std::static_pointer_cast<JVMType_Char>(returnType),
-													                              getId());
-				} else if(returnType == TYPE_BOOLEAN){
-				    jboolean result = env->CallStaticBooleanMethodA(jvmType->getType(),
-										                            jvmMethod->getMethod(),
-									                                callParams);
-					staticMethodCall_params->result = std::make_shared<JVM_Boolean>(result,
-										                                          std::static_pointer_cast<JVMType_Boolean>(returnType),
-													                              getId());
-				} else if(returnType == TYPE_INT8) {
-					jbyte result = env->CallStaticByteMethodA(jvmType->getType(),
-										                     jvmMethod->getMethod(),
-									                         callParams);
-					staticMethodCall_params->result = std::make_shared<JVM_Int8>(result,
-										                                          std::static_pointer_cast<JVMType_Int8>(returnType),
-													                              getId());
-				} else if(returnType == TYPE_INT16) {
-					jshort result = env->CallStaticShortMethodA(jvmType->getType(),
-										                     jvmMethod->getMethod(),
-									                         callParams);
-					staticMethodCall_params->result = std::make_shared<JVM_Int16>(result,
-										                                          std::static_pointer_cast<JVMType_Int16>(returnType),
-													                              getId());
-				} else if(returnType == TYPE_INT32) {
-					jint result = env->CallStaticIntMethodA(jvmType->getType(),
-										                     jvmMethod->getMethod(),
-									                         callParams);
-					staticMethodCall_params->result = std::make_shared<JVM_Int32>(result,
-										                                          std::static_pointer_cast<JVMType_Int32>(returnType),
-													                              getId());
-				} else if(returnType == TYPE_INT64) {
-					jlong result = env->CallStaticLongMethodA(jvmType->getType(),
-										                     jvmMethod->getMethod(),
-									                         callParams);
-					staticMethodCall_params->result = std::make_shared<JVM_Int64>(result,
-										                                          std::static_pointer_cast<JVMType_Int64>(returnType),
-													                              getId());
-				} else if(returnType == TYPE_FLOAT){
-				    jfloat result = env->CallStaticFloatMethodA(jvmType->getType(),
-										                     jvmMethod->getMethod(),
-									                         callParams);
-					staticMethodCall_params->result = std::make_shared<JVM_Float>(result,
-										                                          std::static_pointer_cast<JVMType_Float>(returnType),
-													                              getId());
-				} else if(returnType == TYPE_DOUBLE){
-				    jdouble result = env->CallStaticDoubleMethodA(jvmType->getType(),
-										                     jvmMethod->getMethod(),
-									                         callParams);
-					staticMethodCall_params->result = std::make_shared<JVM_Double>(result,
-										                                          std::static_pointer_cast<JVMType_Double>(returnType),
-													                              getId());
-				} else {
-					throw 42;
-				}
-				delete[] callParams;
-			};
-			execute(op,params);
-			if(LOG_JVMFOREIGNRUNTIME) {
-				std::cout << ">>>> DEBUG: Type method returned" << std::endl;
-			}
-			return params->result;
-		}
 
 		std::shared_ptr<FR_Object> JVMForeignRuntime::createObject(std::shared_ptr<FR_Type> type,
-												std::shared_ptr<FR_Method> constructor,
-												const std::vector<std::shared_ptr<FR_Object>>& parameters) {
-			check(type);
-			check(constructor);
-			for(auto parameter : parameters) {
-			 	check(parameter);
-			}
-			if(constructor->getType() != type) {
-
-			}
-			if(LOG_JVMFOREIGNRUNTIME) {
-				std::cout << ">>>> DEBUG: Creating object ..." << std::endl;
-			}
-			auto params = std::make_shared<JVMOpParams_ObjectConstruction>();
-			params->type = type;
-			params->constructor = constructor;
-			params->parameters = &parameters;
-			auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
-				auto staticMethodCall_params = std::static_pointer_cast<JVMOpParams_StaticMethodCall>(opParams);
-				auto jvmType = std::static_pointer_cast<JVMType>(staticMethodCall_params->type);
-				auto jvmMethod = std::static_pointer_cast<JVMMethod>(staticMethodCall_params->method);
-				jobject result;
-				if(staticMethodCall_params->parameters->size() > 0) {
-					auto callParams = new jvalue[staticMethodCall_params->parameters->size()];
-					for(size_t i = 0; i < staticMethodCall_params->parameters->size(); i++) {
-						auto jvmParam = std::static_pointer_cast<JVMObjectBase>(staticMethodCall_params->parameters->at(i));
-						callParams[i] = jvmParam->toValue();
-					}
-					auto returnType = jvmMethod->getReturnType();
-					result = env->NewObjectA(jvmType->getType(),jvmMethod->getMethod(),callParams);
-					delete[] callParams;
-
-				} else {
-					std::cout << "No argument constructor" << std::endl;
-					result = env->NewObject(jvmType->getType(),jvmMethod->getMethod());
+			std::shared_ptr<FR_Method> constructor,
+			const std::vector<std::shared_ptr<FR_Object>>& parameters) {
+				check(type);
+				check(constructor);
+				for(auto parameter : parameters) {
+					check(parameter);
 				}
-				staticMethodCall_params->result = std::make_shared<JVMObject>(result,jvmType,getId());
-			};
-			execute(op,params);
-			if(LOG_JVMFOREIGNRUNTIME) {
-				std::cout << ">>>> DEBUG: Object created" << std::endl;
+				if(constructor->getType() != type) {
+
+				}
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << ">>>> DEBUG: Creating object ..." << std::endl;
+				}
+				auto params = std::make_shared<JVMOpParams_ObjectConstruction>();
+				params->type = type;
+				params->constructor = constructor;
+				params->parameters = &parameters;
+				auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
+					auto staticMethodCall_params = std::static_pointer_cast<JVMOpParams_StaticMethodCall>(opParams);
+					auto jvmType = std::static_pointer_cast<JVMType>(staticMethodCall_params->type);
+					auto jvmMethod = std::static_pointer_cast<JVMMethod>(staticMethodCall_params->method);
+					jobject result;
+					if(staticMethodCall_params->parameters->size() > 0) {
+						auto callParams = new jvalue[staticMethodCall_params->parameters->size()];
+						for(size_t i = 0; i < staticMethodCall_params->parameters->size(); i++) {
+							auto jvmParam = std::static_pointer_cast<JVMObjectBase>(staticMethodCall_params->parameters->at(i));
+							callParams[i] = jvmParam->toValue();
+						}
+						auto returnType = jvmMethod->getReturnType();
+						result = env->NewObjectA(jvmType->getType(),jvmMethod->getMethod(),callParams);
+						delete[] callParams;
+
+					} else {
+						std::cout << "No argument constructor" << std::endl;
+						result = env->NewObject(jvmType->getType(),jvmMethod->getMethod());
+					}
+					staticMethodCall_params->result = std::make_shared<JVMObject>(result,jvmType,getId());
+				};
+				execute(op,params);
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << ">>>> DEBUG: Object created" << std::endl;
+				}
+				return params->result;
 			}
-			return params->result;
+
+		std::shared_ptr<FR_Field> JVMForeignRuntime::lookupField(std::shared_ptr<FR_Type> targetType,
+														const std::string& name,
+														const std::shared_ptr<FR_Type> fieldType) {
+			auto params = std::make_shared<JVMOpParams_FieldLookup>();
+			params->targetType = targetType;
+			params->name = name;
+			params->type = fieldType;
+			auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
+				auto instanceFieldAccess = std::static_pointer_cast<JVMOpParams_FieldLookup>(opParams);
+				auto jvmTargetType = std::static_pointer_cast<JVMType>(instanceFieldAccess->targetType);
+				auto jvmFieldType = std::static_pointer_cast<JVMType>(instanceFieldAccess->type);
+				jfieldID field = env->GetStaticFieldID(jvmTargetType->getType(), instanceFieldAccess->name.c_str(), jvmFieldType.getType());
+				if(field == nullptr) {
+					instanceFieldAccess->field = nullptr;
+				} else {
+					instanceFieldAccess->field = std::make_shared<JVMField>(jvmTargetType->getRuntimeId(),
+																			field,
+																			instanceFieldAccess->targetType,
+																			instanceFieldAccess->type);
+				}
+			}
+			return params->field;
 		}
+
+		std::shared_ptr<FR_Field> JVMForeignRuntime::lookupField(std::shared_ptr<FR_Object> targetObject,
+														const std::string& name,
+														const std::shared_ptr<FR_Type> fieldType) {
+			return nullptr;
+		}
+
+		std::shared_ptr<FR_Object> JVMForeignRuntime::getField(std::shared_ptr<FR_Type> targetType,
+													std::shared_ptr<FR_Field> field) {
+			return nullptr;
+		}
+
+		std::shared_ptr<FR_Object> JVMForeignRuntime::getField(std::shared_ptr<FR_Object> targetObject,
+													std::shared_ptr<FR_Field> field) {
+			return nullptr;
+		}
+
+		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupMethod(std::shared_ptr<FR_Object> targetObject,
+			const std::string &name,
+			const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
+			const std::shared_ptr<FR_Type> returnType) {
+				check(targetObject);
+				for(auto parameterType : parametersTypes) {
+					check(parameterType);
+				}
+				check(returnType);
+				std::string methodSignature = prepareMethodSignature(parametersTypes,returnType);
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
+					std::cout << ">>>> DEBUG: Looking for method: (" << name << ")" << std::endl;
+				}
+				auto params = std::make_shared<JVMOpParams_MethodLookup>();
+				params->type = targetObject->getType();
+				params->methodName = name;
+				params->methodSignature = methodSignature;
+				auto op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
+					auto methodLookupParams = std::static_pointer_cast<JVMOpParams_MethodLookup>(opParams);
+					if(LOG_JVMFOREIGNRUNTIME) {
+						std::cout << ">>>> DEBUG: Looking for method: (" << methodLookupParams->methodName << ")" << std::endl;
+					}
+					auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
+					jmethodID method = env->GetMethodID(type->getType(),methodLookupParams->methodName.c_str(),methodLookupParams->methodSignature.c_str());
+					if(LOG_JVMFOREIGNRUNTIME) {
+						if(method != nullptr) {
+							std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") found" << std::endl;
+						} else {
+							std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") not found" << std::endl;
+						}
+					}
+					methodLookupParams->method = method;
+				};
+				execute(op,params);
+				if(params->method == nullptr) {
+					return nullptr;
+				}
+				return std::make_shared<JVMMethod>(getId(),params->method,targetObject->getType(), returnType);
+			}
+
+		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupMethod(std::shared_ptr<FR_Type> targetType,
+				const std::string &name,
+				const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
+				const std::shared_ptr<FR_Type> returnType) {
+					check(targetType);
+					for(auto parameterType : parametersTypes) {
+						check(parameterType);
+					}
+					check(returnType);
+					std::string methodSignature = prepareMethodSignature(parametersTypes,returnType);
+					if(LOG_JVMFOREIGNRUNTIME) {
+						std::cout << ">>>> DEBUG: Signature: " << methodSignature << std::endl;
+						std::cout << ">>>> DEBUG: Looking for method: (" << name << ")" << std::endl;
+					}
+					auto params = std::make_shared<JVMOpParams_MethodLookup>();
+					params->type = targetType;
+					params->methodName = name;
+					params->methodSignature = methodSignature;
+					auto op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
+						auto methodLookupParams = std::static_pointer_cast<JVMOpParams_MethodLookup>(opParams);
+						if(LOG_JVMFOREIGNRUNTIME) {
+							std::cout << ">>>> DEBUG: Looking for method: (" << methodLookupParams->methodName << ")" << std::endl;
+						}
+						auto type = std::static_pointer_cast<JVMType>(methodLookupParams->type);
+						jmethodID method = env->GetStaticMethodID(type->getType(),methodLookupParams->methodName.c_str(),methodLookupParams->methodSignature.c_str());
+						//if(LOG_JVMFOREIGNRUNTIME) {
+						if(method != nullptr) {
+							std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") found" << std::endl;
+						} else {
+							std::cout << ">>>> DEBUG: Method (" << methodLookupParams->methodName << ") not found" << std::endl;
+						}
+						//}
+						methodLookupParams->method = method;
+					};
+					execute(op,params);
+					if(params->method == nullptr) {
+						return nullptr;
+					}
+					return std::make_shared<JVMMethod>(getId(),params->method,targetType,returnType);
+				}
+
+		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Object> targetObject,
+					std::shared_ptr<FR_Method> method,
+					const std::vector<std::shared_ptr<FR_Object>> &parameters) {
+						check(targetObject);
+						check(method);
+						for(auto parameter : parameters) {
+							check(parameter);
+						}
+						auto targetObjectType = std::static_pointer_cast<JVMType>(targetObject->getType());
+						if(targetObjectType->isPrimitive()){
+							throw "Attempt to call method on primitive type value";
+						}
+						if(LOG_JVMFOREIGNRUNTIME) {
+							std::cout << ">>>> DEBUG: Invoking object method ..." << std::endl;
+						}
+						auto params = std::make_shared<JVMOpParams_InstanceMethodCall>();
+						params->object = targetObject;
+						params->method = method;
+						params->parameters = &parameters;
+						auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
+							auto instanceMethodCall_params = std::static_pointer_cast<JVMOpParams_InstanceMethodCall>(opParams);
+							auto jvmObject = std::static_pointer_cast<JVMObject>(instanceMethodCall_params->object);
+							auto jvmMethod = std::static_pointer_cast<JVMMethod>(instanceMethodCall_params->method);
+							auto callParams = new jvalue[instanceMethodCall_params->parameters->size()];
+							for(size_t i = 0; i < instanceMethodCall_params->parameters->size(); i++) {
+								auto jvmParam = std::static_pointer_cast<JVMObjectBase>(instanceMethodCall_params->parameters->at(i));
+								callParams[i] = jvmParam->toValue();
+							}
+							auto returnType = jvmMethod->getReturnType();
+							if(returnType == nullptr) {
+								env->CallVoidMethodA(jvmObject->getObject(),
+								jvmMethod->getMethod(),
+								callParams);
+							} else if(!std::static_pointer_cast<JVMType>(returnType)->isPrimitive()) {
+								jobject obj = env->CallObjectMethodA(jvmObject->getObject(),
+								jvmMethod->getMethod(),
+								callParams);
+								instanceMethodCall_params->result = std::make_shared<JVMObject>(obj,
+									std::static_pointer_cast<JVMType>(returnType),
+									getId());
+								} else if(returnType == TYPE_CHAR){
+									jchar result = env->CallCharMethodA(jvmObject->getObject(),
+									jvmMethod->getMethod(),
+									callParams);
+									instanceMethodCall_params->result = std::make_shared<JVM_Char>(result,
+										std::static_pointer_cast<JVMType_Char>(returnType),
+										getId());
+									} else if(returnType == TYPE_BOOLEAN){
+										jboolean result = env->CallBooleanMethodA(jvmObject->getObject(),
+										jvmMethod->getMethod(),
+										callParams);
+										instanceMethodCall_params->result = std::make_shared<JVM_Boolean>(result == JNI_TRUE ? true : false,
+											std::static_pointer_cast<JVMType_Boolean>(returnType),
+											getId());
+										} else if(returnType == TYPE_INT8) {
+											jbyte result = env->CallByteMethodA(jvmObject->getObject(),
+											jvmMethod->getMethod(),
+											callParams);
+											instanceMethodCall_params->result = std::make_shared<JVM_Int8>(result,
+												std::static_pointer_cast<JVMType_Int8>(returnType),
+												getId());
+											} else if(returnType == TYPE_INT16) {
+												jshort result = env->CallShortMethodA(jvmObject->getObject(),
+												jvmMethod->getMethod(),
+												callParams);
+												instanceMethodCall_params->result = std::make_shared<JVM_Int16>(result,
+													std::static_pointer_cast<JVMType_Int16>(returnType),
+													getId());
+												} else if(returnType == TYPE_INT32) {
+													jint result = env->CallIntMethodA(jvmObject->getObject(),
+													jvmMethod->getMethod(),
+													callParams);
+													instanceMethodCall_params->result = std::make_shared<JVM_Int32>(result,
+														std::static_pointer_cast<JVMType_Int32>(returnType),
+														getId());
+													} else if(returnType == TYPE_INT64) {
+														jlong result = env->CallLongMethodA(jvmObject->getObject(),
+														jvmMethod->getMethod(),
+														callParams);
+														instanceMethodCall_params->result = std::make_shared<JVM_Int64>(result,
+															std::static_pointer_cast<JVMType_Int64>(returnType),
+															getId());
+														} else if(returnType == TYPE_FLOAT){
+															jfloat result = env->CallFloatMethodA(jvmObject->getObject(),
+															jvmMethod->getMethod(),
+															callParams);
+															instanceMethodCall_params->result = std::make_shared<JVM_Float>(result,
+																std::static_pointer_cast<JVMType_Float>(returnType),
+																getId());
+															} else if(returnType == TYPE_DOUBLE){
+																jdouble result = env->CallDoubleMethodA(jvmObject->getObject(),
+																jvmMethod->getMethod(),
+																callParams);
+																instanceMethodCall_params->result = std::make_shared<JVM_Double>(result,
+																	std::static_pointer_cast<JVMType_Double>(returnType),
+																	getId());
+																} else {
+																	throw 42;
+																}
+																delete[] callParams;
+															};
+															execute(op,params);
+															if(LOG_JVMFOREIGNRUNTIME) {
+																std::cout << ">>>> DEBUG: Object method returned" << std::endl;
+															}
+															return params->result;
+														}
+
+		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Type> targetType,
+															std::shared_ptr<FR_Method> method,
+															const std::vector<std::shared_ptr<FR_Object>> &parameters) {
+																check(targetType);
+																check(method);
+																for(auto parameter : parameters) {
+																	check(parameter);
+																}
+																if(LOG_JVMFOREIGNRUNTIME) {
+																	std::cout << ">>>> DEBUG: Invoking type method ..." << std::endl;
+																}
+																auto params = std::make_shared<JVMOpParams_StaticMethodCall>();
+																params->type = targetType;
+																params->method = method;
+																params->parameters = &parameters;
+																auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
+																	auto staticMethodCall_params = std::static_pointer_cast<JVMOpParams_StaticMethodCall>(opParams);
+																	auto jvmType = std::static_pointer_cast<JVMType>(staticMethodCall_params->type);
+																	auto jvmMethod = std::static_pointer_cast<JVMMethod>(staticMethodCall_params->method);
+																	auto callParams = new jvalue[staticMethodCall_params->parameters->size()];
+																	for(size_t i = 0; i < staticMethodCall_params->parameters->size(); i++) {
+																		auto jvmParam = std::static_pointer_cast<JVMObjectBase>(staticMethodCall_params->parameters->at(i));
+																		callParams[i] = jvmParam->toValue();
+																	}
+																	auto returnType = jvmMethod->getReturnType();
+																	//auto staticMethodCaller = returnType->getStaticMethodCaller();
+																	//staticMethodCall_params->result = staticMethodCaller(jvmType,jvmMethod,callParams);
+
+																	if(returnType == nullptr) {
+																		env->CallStaticVoidMethodA(jvmType->getType(),
+																		jvmMethod->getMethod(),
+																		callParams);
+																	} else if(!std::static_pointer_cast<JVMType>(returnType)->isPrimitive()) {
+																		jobject obj = env->CallStaticObjectMethodA(jvmType->getType(),
+																		jvmMethod->getMethod(),
+																		callParams);
+																		staticMethodCall_params->result = std::make_shared<JVMObject>(obj,
+																			std::static_pointer_cast<JVMType>(returnType),
+																			getId());
+																		} else if(returnType == TYPE_CHAR){
+																			jchar result = env->CallStaticCharMethodA(jvmType->getType(),
+																			jvmMethod->getMethod(),
+																			callParams);
+																			staticMethodCall_params->result = std::make_shared<JVM_Char>(result,
+																				std::static_pointer_cast<JVMType_Char>(returnType),
+																				getId());
+																			} else if(returnType == TYPE_BOOLEAN){
+																				jboolean result = env->CallStaticBooleanMethodA(jvmType->getType(),
+																				jvmMethod->getMethod(),
+																				callParams);
+																				staticMethodCall_params->result = std::make_shared<JVM_Boolean>(result,
+																					std::static_pointer_cast<JVMType_Boolean>(returnType),
+																					getId());
+																				} else if(returnType == TYPE_INT8) {
+																					jbyte result = env->CallStaticByteMethodA(jvmType->getType(),
+																					jvmMethod->getMethod(),
+																					callParams);
+																					staticMethodCall_params->result = std::make_shared<JVM_Int8>(result,
+																						std::static_pointer_cast<JVMType_Int8>(returnType),
+																						getId());
+																					} else if(returnType == TYPE_INT16) {
+																						jshort result = env->CallStaticShortMethodA(jvmType->getType(),
+																						jvmMethod->getMethod(),
+																						callParams);
+																						staticMethodCall_params->result = std::make_shared<JVM_Int16>(result,
+																							std::static_pointer_cast<JVMType_Int16>(returnType),
+																							getId());
+																						} else if(returnType == TYPE_INT32) {
+																							jint result = env->CallStaticIntMethodA(jvmType->getType(),
+																							jvmMethod->getMethod(),
+																							callParams);
+																							staticMethodCall_params->result = std::make_shared<JVM_Int32>(result,
+																								std::static_pointer_cast<JVMType_Int32>(returnType),
+																								getId());
+																							} else if(returnType == TYPE_INT64) {
+																								jlong result = env->CallStaticLongMethodA(jvmType->getType(),
+																								jvmMethod->getMethod(),
+																								callParams);
+																								staticMethodCall_params->result = std::make_shared<JVM_Int64>(result,
+																									std::static_pointer_cast<JVMType_Int64>(returnType),
+																									getId());
+																								} else if(returnType == TYPE_FLOAT){
+																									jfloat result = env->CallStaticFloatMethodA(jvmType->getType(),
+																									jvmMethod->getMethod(),
+																									callParams);
+																									staticMethodCall_params->result = std::make_shared<JVM_Float>(result,
+																										std::static_pointer_cast<JVMType_Float>(returnType),
+																										getId());
+																									} else if(returnType == TYPE_DOUBLE){
+																										jdouble result = env->CallStaticDoubleMethodA(jvmType->getType(),
+																										jvmMethod->getMethod(),
+																										callParams);
+																										staticMethodCall_params->result = std::make_shared<JVM_Double>(result,
+																											std::static_pointer_cast<JVMType_Double>(returnType),
+																											getId());
+																										} else {
+																											throw 42;
+																										}
+																										delete[] callParams;
+																									};
+																									execute(op,params);
+																									if(LOG_JVMFOREIGNRUNTIME) {
+																										std::cout << ">>>> DEBUG: Type method returned" << std::endl;
+																									}
+																									return params->result;
+																								}
 
 		void JVMForeignRuntime::execute(JVMOp jvmOp, std::shared_ptr<JVMOpParams> params) {
 			controlData.jvmOp = jvmOp;
@@ -866,6 +966,7 @@ namespace nigiri
 				throw RuntimeIDMismatch("Provided type do not belongs to this foreign runtime");
 			}
 		}
+
 		void JVMForeignRuntime::check(const std::shared_ptr<FR_Method>& method) {
 			if(method == nullptr) {
 				throw std::invalid_argument("Method is nullptr");
@@ -873,6 +974,7 @@ namespace nigiri
 				throw RuntimeIDMismatch("Provided method do not belongs to this foreign runtime");
 			}
 		}
+
 		void JVMForeignRuntime::check(const std::shared_ptr<FR_Object>& object) {
 			if(object == nullptr) {
 				throw std::invalid_argument("Object is nullptr");
@@ -880,7 +982,6 @@ namespace nigiri
 				throw RuntimeIDMismatch("Provided object do not belongs to this foreign runtime");
 			}
 		}
-
 
 		std::string getThreadIdString(std::thread::id tid){
 	        static std::hash<std::thread::id> hasher;

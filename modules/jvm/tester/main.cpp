@@ -30,6 +30,13 @@ void check(std::shared_ptr<nigiri::FR_Method> obj, std::string msg) {
 	}
 }
 
+void check(std::shared_ptr<nigiri::FR_Field> obj, std::string msg) {
+	if (obj == nullptr) {
+		std::cout << msg << std::endl;
+		std::exit(-1);
+	}
+}
+
 int main() {
     bool jvmAvailable = nigiri::ForeignRuntimeManager::isCategoryAvailable("jvm");
     if(!jvmAvailable) {
@@ -83,6 +90,18 @@ int main() {
             jvm->wrapPrimitive(3)
         });
     check(point, "point is nullptr");
+
+    // auto fieldX = jvm->lookupField(point,"x",type_int);
+    // check(fieldX,"FieldX is nullptr");
+    // auto x = jvm->getField(type_Point,fieldX);
+    // check(x,"X is nullptr");
+
+    auto fieldY = jvm->lookupField(point,"y",type_int);
+    check(fieldY,"FieldY is nullptr");
+    auto y = jvm->getField(type_Point,fieldY);
+    check(y,"X is nullptr");
+
+
 
     return 0;
 }

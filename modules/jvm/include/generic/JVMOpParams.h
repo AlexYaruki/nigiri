@@ -20,7 +20,6 @@ namespace nigiri {
             std::string methodName;
 			std::string methodSignature;
 			jmethodID method;
-
         };
 
 		class JVMOpParams_StaticMethodCall : public JVMOpParams {
@@ -39,6 +38,33 @@ namespace nigiri {
 			std::shared_ptr<FR_Method> method;
             const std::vector<std::shared_ptr<FR_Object>> *parameters;
 			std::shared_ptr<FR_Object> result;
+		};
+
+        class JVMOpParams_FieldLookup : public JVMOpParams{
+        public:
+            ~JVMOpParams_FieldLookup() = default;
+            std::shared_ptr<FR_Type> targetType;
+            std::string name;
+            std::shared_ptr<FR_Type> type;
+            std::shared_ptr<FR_Field> field;
+        };
+
+        class JVMOpParams_StaticFieldAccess : public JVMOpParams {
+		public:
+			~JVMOpParams_StaticFieldAccess() = default;
+			std::shared_ptr<JVMType> targetType;
+			std::string name;
+			std::shared_ptr<JVMType> type;
+            std::shared_ptr<FR_Object> result;
+		};
+
+        class JVMOpParams_InstanceFieldAccess : public JVMOpParams {
+		public:
+			~JVMOpParams_InstanceFieldAccess() = default;
+            std::shared_ptr<FR_Object> targetType;
+			std::string name;
+			std::shared_ptr<FR_Type> type;
+            std::shared_ptr<FR_Object> result;
 		};
 
         class JVMOpParams_ObjectConstruction : public JVMOpParams {

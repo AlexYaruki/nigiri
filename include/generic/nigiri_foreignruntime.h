@@ -41,13 +41,6 @@ namespace nigiri {
     using FR_Id = uint64_t;
     const std::string FR_LOADER_FUNC_NAME = "fr_loader";
 
-    enum class FR_PrimitiveType {
-        Int8,
-        Int16,
-        Int32,
-        Int64
-    };
-
     class NIGIRI_EXPORT FR_Type {
     public:
         virtual ~FR_Type() = default;
@@ -77,6 +70,14 @@ namespace nigiri {
         virtual std::shared_ptr<FR_Type> getType() = 0;
     };
 
+    class NIGIRI_EXPORT FR_Field {
+    public:
+        virtual ~FR_Field() = default;
+        virtual FR_Id getRuntimeId() = 0;
+        virtual std::shared_ptr<FR_Type> getType() = 0;
+    };
+
+
     class NIGIRI_EXPORT ForeignRuntime {
     public:
         virtual ~ForeignRuntime() = default;
@@ -86,18 +87,37 @@ namespace nigiri {
         virtual bool isRunning() = 0;
         virtual std::shared_ptr<FR_Type> lookupType(const std::string& name) = 0;
 
+        virtual std::shared_ptr<FR_Method> lookupConstructor(std::shared_ptr<FR_Type> targetType,
+            const std::vector<std::shared_ptr<FR_Type>>& parameterTypes) = 0;
+
+        virtual std::shared_ptr<FR_Object> createObject(std::shared_ptr<FR_Type> type,
+                std::shared_ptr<FR_Method> constructor,
+                const std::vector<std::shared_ptr<FR_Object>>& parameters) = 0;
+
+        virtual std::shared_ptr<FR_Field> lookupField(std::shared_ptr<FR_Type> targetType,
+                                                        const std::string& name,
+                                                        const std::shared_ptr<FR_Type> fieldType) = 0;
+
+        virtual std::shared_ptr<FR_Field> lookupField(std::shared_ptr<FR_Object> targetObject,
+                                                        const std::string& name,
+                                                        const std::shared_ptr<FR_Type> fieldType) = 0;
+
+        virtual std::shared_ptr<FR_Object> getField(std::shared_ptr<FR_Type> targetType,
+                                                    std::shared_ptr<FR_Field> field) = 0;
+
+        virtual std::shared_ptr<FR_Object> getField(std::shared_ptr<FR_Object> targetObject,
+                                                    std::shared_ptr<FR_Field> field) = 0;
+
+
         virtual std::shared_ptr<FR_Method> lookupMethod(std::shared_ptr<FR_Type> targetType,
                                                         const std::string& name,
                                                         const std::vector<std::shared_ptr<FR_Type>>& parameterTypes,
                                                         const std::shared_ptr<FR_Type> returnType) = 0;
 
-        virtual std::shared_ptr<FR_Method> lookupMethod(std::shared_ptr<FR_Object> targetType,
+        virtual std::shared_ptr<FR_Method> lookupMethod(std::shared_ptr<FR_Object> targetObject,
                                                         const std::string& name,
                                                         const std::vector<std::shared_ptr<FR_Type>>& parameterTypes,
                                                         const std::shared_ptr<FR_Type> returnType) = 0;
-
-        virtual std::shared_ptr<FR_Method> lookupConstructor(std::shared_ptr<FR_Type> targetType,
-                                                        const std::vector<std::shared_ptr<FR_Type>>& parameterTypes) = 0;
 
         virtual std::shared_ptr<FR_Object> call(std::shared_ptr<FR_Type> targetType,
                                                 std::shared_ptr<FR_Method> method,
@@ -106,10 +126,6 @@ namespace nigiri {
         virtual std::shared_ptr<FR_Object> call(std::shared_ptr<FR_Object> targetObject,
                                                 std::shared_ptr<FR_Method> method,
                                                 const std::vector<std::shared_ptr<FR_Object>>& parameters) = 0;
-
-        virtual std::shared_ptr<FR_Object> createObject(std::shared_ptr<FR_Type> type,
-                                                        std::shared_ptr<FR_Method> constructor,
-                                                        const std::vector<std::shared_ptr<FR_Object>>& parameters) = 0;
 
         virtual std::shared_ptr<FR_Object> wrapPrimitive(uint16_t p) = 0;
         virtual std::shared_ptr<FR_Object> wrapPrimitive(bool p) = 0;

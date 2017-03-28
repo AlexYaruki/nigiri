@@ -19,6 +19,17 @@ namespace nigiri {
 		const bool LOG_JVMTHREAD = false;
 		const bool LOG_JVMFOREIGNRUNTIME = false;
 
+		class JVMType;
+		class JVMMethod;
+		class JVMField;
+		class JVMObject;
+
+		using StaticMethodCaller = std::function<std::shared_ptr<FR_Object>(JNIEnv*,std::shared_ptr<JVMType>,std::shared_ptr<JVMMethod>,jvalue*)>;
+		using InstanceMethodCaller = std::function<std::shared_ptr<FR_Object>(JNIEnv*,std::shared_ptr<JVMObject>,std::shared_ptr<JVMMethod>,jvalue*)>;
+
+		using StaticFieldAccessor = std::function<std::shared_ptr<FR_Object>(JNIEnv*,std::shared_ptr<JVMType>,std::shared_ptr<JVMField>)>;
+		using InstanceFieldAccessor = std::function<std::shared_ptr<FR_Object>(JNIEnv*,std::shared_ptr<JVMObject>,std::shared_ptr<JVMField>)>;
+
         class JVMType : public nigiri::FR_Type {
         public:
             JVMType(FR_Id id ,jclass type, std::string name, std::string signatureName);
@@ -26,6 +37,10 @@ namespace nigiri {
 			FR_Id getRuntimeId();
 			const std::string& getName();
 			const std::string& getSignatureName();
+			virtual const StaticMethodCaller& getStaticMethodCaller();
+			virtual const InstanceMethodCaller& getInstanceMethodCaller();
+		    virtual const StaticFieldAccessor& getStaticFieldAccessor();
+		    virtual const InstanceFieldAccessor& getInstanceFieldAccessor();
 			bool isPrimitive();
 			jclass getType();
 
@@ -58,6 +73,20 @@ namespace nigiri {
             jmethodID method;
 			std::shared_ptr<FR_Type> type;
 			std::shared_ptr<FR_Type> returnType;
+        };
+
+		class JVMField : public nigiri::FR_Field {
+        public:
+            JVMField(FR_Id runtimeId, jfieldID field, std::shared_ptr<FR_Type> parentType, std::shared_ptr<FR_Type> type);
+            FR_Id getRuntimeId();
+            jfieldID getField();
+			std::shared_ptr<FR_Type> getParentType();
+			std::shared_ptr<FR_Type> getType();
+        private:
+            FR_Id runtimeId;
+            jfieldID field;
+			std::shared_ptr<FR_Type> parentType;
+			std::shared_ptr<FR_Type> type;
         };
 
 		class JVMObjectBase : public nigiri::FR_Object {
@@ -107,6 +136,20 @@ namespace nigiri {
             bool isRunning() override;
 
             std::shared_ptr<FR_Type> lookupType(const std::string& name) override;
+
+			std::shared_ptr<FR_Field> lookupField(std::shared_ptr<FR_Type> targetType,
+	                                                        const std::string& name,
+	                                                        const std::shared_ptr<FR_Type> fieldType) override;
+
+	        std::shared_ptr<FR_Field> lookupField(std::shared_ptr<FR_Object> targetObject,
+	                                                        const std::string& name,
+	                                                        const std::shared_ptr<FR_Type> fieldType) override;
+
+	        std::shared_ptr<FR_Object> getField(std::shared_ptr<FR_Type> targetType,
+	                                                    std::shared_ptr<FR_Field> field) override;
+
+	        std::shared_ptr<FR_Object> getField(std::shared_ptr<FR_Object> targetObject,
+	                                                    std::shared_ptr<FR_Field> field) override;
 
             std::shared_ptr<FR_Method> lookupMethod(std::shared_ptr<FR_Type> targetType,
 													const std::string& name,
