@@ -99,7 +99,7 @@ namespace nigiri {
 
         class JVM_Int64 : public nigiri::internal::JVMObjectBase {
         public:
-            JVM_Int64(int64_t v, std::shared_ptr<JVMType_Int64> vType, FR_Id id);
+            JVM_Int64(jlong v, std::shared_ptr<JVMType_Int64> vType, FR_Id id);
             std::tuple<bool,int64_t> castToInt64();
             jvalue toValue();
         private:

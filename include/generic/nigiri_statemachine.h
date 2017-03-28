@@ -83,9 +83,9 @@ public:
         std::unique_lock<std::mutex> lock(mtx);
         TState* statePtr = &state;
         cv.wait(lock,[statePtr,waitState](){
-			StateValue requiredStateValue = static_cast<StateValue>(waitState);
+			#ifdef LOG_NIGIRI_STATEMACHINE
+            StateValue requiredStateValue = static_cast<StateValue>(waitState);
 			StateValue currentStateValue = static_cast<StateValue>(*statePtr);
-            #ifdef LOG_NIGIRI_STATEMACHINE
             std::string msg = "StateMachine - State check - ";
 			msg += "Required: \"" + std::to_string(requiredStateValue) + "\", Current: \"" + std::to_string(currentStateValue) + "\"";
 			std::cout << msg << std::endl;
@@ -116,9 +116,9 @@ public:
 			cv.wait(lock);
 			for (auto waitState : waitStates) {
 				if (waitState == state) {
-					StateValue requiredStateValue = static_cast<StateValue>(waitState);
+					#ifdef LOG_NIGIRI_STATEMACHINE
+                    StateValue requiredStateValue = static_cast<StateValue>(waitState);
 					StateValue currentStateValue = static_cast<StateValue>(state);
-                    #ifdef LOG_NIGIRI_STATEMACHINE
                     std::string msg = "StateMachine - State check - ";
 					msg += "Required: \"" + std::to_string(requiredStateValue) + "\", Current: \"" + std::to_string(currentStateValue) + "\"";
 					std::cout << msg << std::endl;

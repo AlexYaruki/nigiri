@@ -74,6 +74,7 @@ namespace nigiri {
     public:
         virtual ~FR_Field() = default;
         virtual FR_Id getRuntimeId() = 0;
+        virtual std::shared_ptr<FR_Type> getParentType() = 0;
         virtual std::shared_ptr<FR_Type> getType() = 0;
     };
 

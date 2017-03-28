@@ -78,10 +78,10 @@ namespace nigiri {
 		class JVMField : public nigiri::FR_Field {
         public:
             JVMField(FR_Id runtimeId, jfieldID field, std::shared_ptr<FR_Type> parentType, std::shared_ptr<FR_Type> type);
-            FR_Id getRuntimeId();
+            FR_Id getRuntimeId() override;
             jfieldID getField();
-			std::shared_ptr<FR_Type> getParentType();
-			std::shared_ptr<FR_Type> getType();
+			std::shared_ptr<FR_Type> getParentType() override;
+			std::shared_ptr<FR_Type> getType() override;
         private:
             FR_Id runtimeId;
             jfieldID field;

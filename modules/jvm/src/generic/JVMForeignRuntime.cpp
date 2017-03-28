@@ -67,7 +67,7 @@ namespace nigiri
 		const StaticFieldAccessor& JVMType::getStaticFieldAccessor() {
 			static StaticFieldAccessor accessor = [](auto env, auto targetType, auto field) {
 				auto obj = env->GetStaticObjectField(targetType->getType(), field->getField());
-				auto jvmFieldType = std::static_pointer_cast<JVMType>(field->getFieldType());
+				auto jvmFieldType = std::static_pointer_cast<JVMType>(field->getType());
 				return std::make_shared<JVMObject>(obj,jvmFieldType,targetType->getRuntimeId());
 			};
 			return accessor;
@@ -77,7 +77,7 @@ namespace nigiri
 		const InstanceFieldAccessor& JVMType::getInstanceFieldAccessor() {
 			static InstanceFieldAccessor accessor = [](auto env, auto targetObject, auto field) {
 				auto obj = env->GetObjectField(targetObject->getObject(), field->getField());
-				auto jvmFieldType = std::static_pointer_cast<JVMType>(field->getFieldType());
+				auto jvmFieldType = std::static_pointer_cast<JVMType>(field->getType());
 				return std::make_shared<JVMObject>(obj,jvmFieldType,targetObject->getRuntimeId());
 			};
 			return accessor;
@@ -173,7 +173,11 @@ namespace nigiri
 
 		// JVMField ////////////////////////////////////////////////////////////
 
-		JVMField::JVMField(FR_Id id, jfieldID field, std::shared_ptr<FR_Type> parentType, std::shared_ptr<FR_Type> type): runtimeId(runtimeId),
+		JVMField::JVMField(FR_Id id, jfieldID field, std::shared_ptr<FR_Type> parentType, std::shared_ptr<FR_Type> type):
+			runtimeId(id),
+			field(field),
+			parentType(parentType),
+			type(type) {}
 
 		jfieldID JVMField::getField() {
 			return field;
@@ -491,11 +495,11 @@ namespace nigiri
 			params->targetType = targetType;
 			params->name = name;
 			params->type = fieldType;
-			auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
+			auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
 				auto instanceFieldAccess = std::static_pointer_cast<JVMOpParams_FieldLookup>(opParams);
 				auto jvmTargetType = std::static_pointer_cast<JVMType>(instanceFieldAccess->targetType);
 				auto jvmFieldType = std::static_pointer_cast<JVMType>(instanceFieldAccess->type);
-				jfieldID field = env->GetStaticFieldID(jvmTargetType->getType(), instanceFieldAccess->name.c_str(), jvmFieldType.getType());
+				jfieldID field = env->GetStaticFieldID(jvmTargetType->getType(), instanceFieldAccess->name.c_str(), jvmFieldType->getSignatureName().c_str());
 				if(field == nullptr) {
 					instanceFieldAccess->field = nullptr;
 				} else {
@@ -504,7 +508,8 @@ namespace nigiri
 																			instanceFieldAccess->targetType,
 																			instanceFieldAccess->type);
 				}
-			}
+			};
+			execute(op,params);
 			return params->field;
 		}
 
