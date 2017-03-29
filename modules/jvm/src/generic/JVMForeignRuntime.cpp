@@ -349,6 +349,10 @@ namespace nigiri
                 return TYPE_FLOAT;
             } else if(name.compare("double") == 0){
                 return TYPE_DOUBLE;
+            } else if(name.compare("boolean") == 0){
+                return TYPE_BOOLEAN;
+            } else if(name.compare("char") == 0){
+                return TYPE_CHAR;
             }
 
 			auto search = typeCache.find(name);

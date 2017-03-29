@@ -39,6 +39,8 @@ if(NOT "${LIBRARIES}" STREQUAL "")
     target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
 endif()
 
+enable_testing()
+
 install(TARGETS ${PROJECT_NAME} DESTINATION ${TARGET_INSTALL_DIR})
 install(DIRECTORY include/generic/ DESTINATION ${HEADERS_INSTALL_DIR}/${PROJECT_NAME})
 if(EXISTS include/${BUILD_PLATFORM})
