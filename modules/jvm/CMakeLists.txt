@@ -15,8 +15,12 @@ include_directories(${JNI_INCLUDE_DIRS})
 
 set(BUILD_TYPE "shared")
 
+if(NOT EXISTS ${PROJECT_BINARY_DIR}/nigiri.jar)
+    execute_process(COMMAND mvn clean package
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests_jar)
+    file(RENAME ${PROJECT_SOURCE_DIR}/tests_jar/target/nigiri.jar ${PROJECT_BINARY_DIR}/nigiri.jar)
+endif()
 include(post.cmake)
-add_subdirectory(tester)
 
 enable_testing()
 file(GLOB_RECURSE TEST_SOURCE_FILES "${PROJECT_SOURCE_DIR}/tests/*.cpp")

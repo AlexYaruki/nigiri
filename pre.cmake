@@ -42,7 +42,6 @@ elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 else()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
 endif()
-message(STATUS "Input files: ${INPUT_FILES}")
 
 if( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
