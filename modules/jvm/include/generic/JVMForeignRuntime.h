@@ -16,8 +16,8 @@
 namespace nigiri {
 	namespace internal
 	{
-		const bool LOG_JVMTHREAD = false;
-		const bool LOG_JVMFOREIGNRUNTIME = false;
+		const bool LOG_JVMTHREAD = true;
+		const bool LOG_JVMFOREIGNRUNTIME = true;
 
 		class JVMType;
 		class JVMMethod;
@@ -122,7 +122,7 @@ namespace nigiri {
 		    virtual ~JVMOpParams() = default;
 		};
 
-        using JVMOp = std::function<void(JNIEnv* env,std::shared_ptr<JVMOpParams> params)>;
+        using JVMOp = std::function<void(JNIEnv*,std::shared_ptr<JVMOpParams>)>;
 
 		class JVMForeignRuntime : public nigiri::ForeignRuntime
 		{

@@ -213,6 +213,7 @@ namespace nigiri
 			TYPE_FLOAT = std::make_shared<JVMType_Float>(getId(), nullptr);
 			TYPE_DOUBLE = std::make_shared<JVMType_Double>(getId(), nullptr);
 
+			controlData.workOperation = JVMWorkOperation::ExecuteOp;
 			controlData.stateMachine.registerStateToString(getStateString);
 			controlData.stateMachine.registerEventToString(getEventString);
 
@@ -382,6 +383,7 @@ namespace nigiri
 					typeLookupParams->type = nullptr;
 				}
 			};
+			std::cout << "Clinet - Op: " << op.target<void(JNIEnv*, std::shared_ptr<JVMOpParams>)>() << std::endl;
 			execute(op,params);
 			if(params->type != nullptr) {
 				typeCache.insert({name,params->type});

@@ -1,4 +1,5 @@
 #include <cstring>
+#include <cassert>
 #include <nigiri.h>
 #include "JVMThread.h"
 
@@ -109,7 +110,7 @@ namespace nigiri
 			}
 			switch(controlData->workOperation){
                 case JVMWorkOperation::ExecuteOp: {
-                    controlData->jvmOp(env,controlData->jvmOpParams);
+					controlData->jvmOp(env,controlData->jvmOpParams);
 					break;
                 }
                 case JVMWorkOperation::Shutdown:
@@ -120,7 +121,6 @@ namespace nigiri
 					shutdownRequested = true;
                     break;
                 }
-
             }
 		}
 
