@@ -16,8 +16,8 @@
 namespace nigiri {
 	namespace internal
 	{
-		const bool LOG_JVMTHREAD = false;
-		const bool LOG_JVMFOREIGNRUNTIME = false;
+		const bool LOG_JVMTHREAD = true;
+		const bool LOG_JVMFOREIGNRUNTIME = true;
 
 		class JVMType;
 		class JVMMethod;

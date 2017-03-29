@@ -22,14 +22,6 @@
 
 namespace nigiri {
 
-    class RuntimeIDMismatch : public std::exception {
-    public:
-        RuntimeIDMismatch(const std::string& msg) throw();
-        const char* what() const throw() override;
-    private:
-        std::string reason;
-    };
-
     class TypeCorrelationMismatch : public std::exception {
         TypeCorrelationMismatch(const std::string& msg) throw();
         const char* what() const throw() override;

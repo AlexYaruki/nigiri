@@ -353,13 +353,15 @@ namespace nigiri
 			auto search = typeCache.find(name);
 			if(search != typeCache.end()) {
 				return search->second;
+			} else if(LOG_JVMFOREIGNRUNTIME) {
+				std::cout << "Type " << name << " not found in cache" << std::endl;
 			}
 
 			std::shared_ptr<JVMOpParams_TypeLookup> params = std::make_shared<JVMOpParams_TypeLookup>();
 
 			params->typeName = name;
             auto& localId = id;
-			auto op = [localId](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
+			JVMOp op = [localId](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
 				if(LOG_JVMFOREIGNRUNTIME) {
 					std::cout << "Started type lookup ..." << std::endl;
 				}
@@ -968,7 +970,7 @@ namespace nigiri
 			if(type == nullptr) {
 				throw std::invalid_argument("Type is nullptr");
 			} else if(type->getRuntimeId() != getId()) {
-				throw RuntimeIDMismatch("Provided type do not belongs to this foreign runtime");
+				throw std::invalid_argument("Provided type do not belongs to this foreign runtime");
 			}
 		}
 
@@ -976,7 +978,7 @@ namespace nigiri
 			if(method == nullptr) {
 				throw std::invalid_argument("Method is nullptr");
 			} else if(method->getRuntimeId() != getId()) {
-				throw RuntimeIDMismatch("Provided method do not belongs to this foreign runtime");
+				throw std::invalid_argument("Provided method do not belongs to this foreign runtime");
 			}
 		}
 
@@ -984,7 +986,7 @@ namespace nigiri
 			if(object == nullptr) {
 				throw std::invalid_argument("Object is nullptr");
 			} else if(object->getRuntimeId() != getId()) {
-				throw RuntimeIDMismatch("Provided object do not belongs to this foreign runtime");
+				throw std::invalid_argument("Provided object do not belongs to this foreign runtime");
 			}
 		}
 
