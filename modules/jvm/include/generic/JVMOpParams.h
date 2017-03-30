@@ -52,9 +52,8 @@ namespace nigiri {
         class JVMOpParams_StaticFieldAccess : public JVMOpParams {
 		public:
 			~JVMOpParams_StaticFieldAccess() = default;
-			std::shared_ptr<JVMType> targetType;
-			std::string name;
-			std::shared_ptr<JVMType> type;
+			std::shared_ptr<FR_Type> targetType;
+			std::shared_ptr<FR_Field> field;
             std::shared_ptr<FR_Object> result;
 		};
 

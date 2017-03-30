@@ -504,17 +504,17 @@ namespace nigiri
 			params->name = name;
 			params->type = fieldType;
 			auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
-				auto instanceFieldAccess = std::static_pointer_cast<JVMOpParams_FieldLookup>(opParams);
-				auto jvmTargetType = std::static_pointer_cast<JVMType>(instanceFieldAccess->targetType);
-				auto jvmFieldType = std::static_pointer_cast<JVMType>(instanceFieldAccess->type);
-				jfieldID field = env->GetStaticFieldID(jvmTargetType->getType(), instanceFieldAccess->name.c_str(), jvmFieldType->getSignatureName().c_str());
+				auto fieldLookup = std::static_pointer_cast<JVMOpParams_FieldLookup>(opParams);
+				auto jvmTargetType = std::static_pointer_cast<JVMType>(fieldLookup->targetType);
+				auto jvmFieldType = std::static_pointer_cast<JVMType>(fieldLookup->type);
+				jfieldID field = env->GetStaticFieldID(jvmTargetType->getType(), fieldLookup->name.c_str(), jvmFieldType->getSignatureName().c_str());
 				if(field == nullptr) {
-					instanceFieldAccess->field = nullptr;
+					fieldLookup->field = nullptr;
 				} else {
-					instanceFieldAccess->field = std::make_shared<JVMField>(jvmTargetType->getRuntimeId(),
+					fieldLookup->field = std::make_shared<JVMField>(jvmTargetType->getRuntimeId(),
 																			field,
-																			instanceFieldAccess->targetType,
-																			instanceFieldAccess->type);
+																			fieldLookup->targetType,
+																			fieldLookup->type);
 				}
 			};
 			execute(op,params);
@@ -529,7 +529,19 @@ namespace nigiri
 
 		std::shared_ptr<FR_Object> JVMForeignRuntime::getField(std::shared_ptr<FR_Type> targetType,
 													std::shared_ptr<FR_Field> field) {
-			return nullptr;
+			auto params = std::make_shared<JVMOpParams_StaticFieldAccess>();
+			params->targetType = targetType;
+			params->field = field;
+			auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
+				auto staticFieldAccess = std::static_pointer_cast<JVMOpParams_StaticFieldAccess>(opParams);
+				auto jvmTargetType = std::static_pointer_cast<JVMType>(staticFieldAccess->targetType);
+				auto jvmField = std::static_pointer_cast<JVMField>(staticFieldAccess->field);
+				auto jvmFieldType = std::static_pointer_cast<JVMType>(jvmField->getType());
+				auto accessor = jvmFieldType->getStaticFieldAccessor();
+				staticFieldAccess->result = accessor(env,jvmTargetType,jvmField);
+			};
+			execute(op,params);
+			return params->result;
 		}
 
 		std::shared_ptr<FR_Object> JVMForeignRuntime::getField(std::shared_ptr<FR_Object> targetObject,
