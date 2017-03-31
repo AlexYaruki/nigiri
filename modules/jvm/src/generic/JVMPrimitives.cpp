@@ -4,50 +4,6 @@ namespace nigiri {
 
     namespace internal {
 
-        // JVM Primitive Types ////////////////////////////////////////////////////
-
-        JVMType_Char::JVMType_Char(FR_Id id, jclass type) : JVMType(id,nullptr,"char","C") {
-            primitive = true;
-            primitiveChar = true;
-        }
-
-        JVMType_Boolean::JVMType_Boolean(FR_Id id, jclass type) : JVMType(id,nullptr,"boolean","Z") {
-            primitive = true;
-            primitiveBoolean = true;
-        }
-
-        JVMType_Int8::JVMType_Int8(FR_Id id, jclass type) : JVMType(id,nullptr,"byte","B") {
-            primitive = true;
-            primitiveInt8 = true;
-        }
-
-		JVMType_Int16::JVMType_Int16(FR_Id id, jclass type) : JVMType(id,nullptr,"short","S") {
-            primitive = true;
-            primitiveInt16 = true;
-        }
-
-		JVMType_Int32::JVMType_Int32(FR_Id id, jclass type) : JVMType(id,nullptr,"int","I") {
-            primitive = true;
-            primitiveInt32 = true;
-        }
-
-		JVMType_Int64::JVMType_Int64(FR_Id id, jclass type) : JVMType(id,nullptr,"long","J") {
-            primitive = true;
-            primitiveInt64 = true;
-        }
-
-		JVMType_Float::JVMType_Float(FR_Id id, jclass type) : JVMType(id,nullptr,"float","F") {
-            primitive = true;
-            primitiveFloat = true;
-        }
-
-		JVMType_Double::JVMType_Double(FR_Id id, jclass type) : JVMType(id,nullptr,"double","D") {
-            primitive = true;
-            primitiveDouble = true;
-		}
-
-        ///////////////////////////////////////////////////////////////////////////
-
         // JVM Primitive Wrapper - char ///////////////////////////////////////////
 
         JVM_Char::JVM_Char(jchar v, std::shared_ptr<JVMType_Char> vType, FR_Id id) {

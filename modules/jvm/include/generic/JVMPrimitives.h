@@ -11,41 +11,73 @@ namespace nigiri {
         class JVMType_Char : public nigiri::internal::JVMType {
         public:
             JVMType_Char(FR_Id id ,jclass type);
+            const StaticMethodCaller& getStaticMethodCaller() override;
+			const InstanceMethodCaller& getInstanceMethodCaller() override;
+		    const StaticFieldAccessor& getStaticFieldAccessor() override;
+		    const InstanceFieldAccessor& getInstanceFieldAccessor() override;
         };
 
         class JVMType_Boolean : public nigiri::internal::JVMType {
         public:
             JVMType_Boolean(FR_Id id ,jclass type);
+            const StaticMethodCaller& getStaticMethodCaller() override;
+			const InstanceMethodCaller& getInstanceMethodCaller() override;
+		    const StaticFieldAccessor& getStaticFieldAccessor() override;
+		    const InstanceFieldAccessor& getInstanceFieldAccessor() override;
         };
 
         class JVMType_Int8 : public nigiri::internal::JVMType {
         public:
             JVMType_Int8(FR_Id id ,jclass type);
+            const StaticMethodCaller& getStaticMethodCaller() override;
+			const InstanceMethodCaller& getInstanceMethodCaller() override;
+		    const StaticFieldAccessor& getStaticFieldAccessor() override;
+		    const InstanceFieldAccessor& getInstanceFieldAccessor() override;
         };
 
 		class JVMType_Int16 : public nigiri::internal::JVMType {
         public:
             JVMType_Int16(FR_Id id ,jclass type);
+            const StaticMethodCaller& getStaticMethodCaller() override;
+			const InstanceMethodCaller& getInstanceMethodCaller() override;
+		    const StaticFieldAccessor& getStaticFieldAccessor() override;
+		    const InstanceFieldAccessor& getInstanceFieldAccessor() override;
         };
 
 		class JVMType_Int32 : public nigiri::internal::JVMType {
         public:
             JVMType_Int32(FR_Id id ,jclass type);
+            const StaticMethodCaller& getStaticMethodCaller() override;
+			const InstanceMethodCaller& getInstanceMethodCaller() override;
+		    const StaticFieldAccessor& getStaticFieldAccessor() override;
+		    const InstanceFieldAccessor& getInstanceFieldAccessor() override;
         };
 
 		class JVMType_Int64 : public nigiri::internal::JVMType {
         public:
             JVMType_Int64(FR_Id id ,jclass type);
+            const StaticMethodCaller& getStaticMethodCaller() override;
+			const InstanceMethodCaller& getInstanceMethodCaller() override;
+		    const StaticFieldAccessor& getStaticFieldAccessor() override;
+		    const InstanceFieldAccessor& getInstanceFieldAccessor() override;
         };
 
 		class JVMType_Float : public nigiri::internal::JVMType {
 		public:
 			JVMType_Float(FR_Id id ,jclass type);
+            const StaticMethodCaller& getStaticMethodCaller() override;
+			const InstanceMethodCaller& getInstanceMethodCaller() override;
+		    const StaticFieldAccessor& getStaticFieldAccessor() override;
+		    const InstanceFieldAccessor& getInstanceFieldAccessor() override;
 		};
 
 		class JVMType_Double : public nigiri::internal::JVMType {
         public:
             JVMType_Double(FR_Id id ,jclass type);
+            const StaticMethodCaller& getStaticMethodCaller() override;
+			const InstanceMethodCaller& getInstanceMethodCaller() override;
+		    const StaticFieldAccessor& getStaticFieldAccessor() override;
+		    const InstanceFieldAccessor& getInstanceFieldAccessor() override;
         };
 
         ///////////////////////////////////////////////////////////////////////////

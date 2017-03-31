@@ -1,5 +1,6 @@
 #include <cassert>
 #include <nigiri.h>
+#include <iostream>
 
 int main(){
     auto jvm = nigiri::ForeignRuntimeManager::createRuntime("jvm");
@@ -14,5 +15,7 @@ int main(){
     assert(jvmMath_abs);
     auto output = jvm->call(jvmMath, jvmMath_abs, {input});
     assert(output);
-    assert(std::get<1>(output->castToDouble()) == 0.1);
+    double out = std::get<1>(output->castToDouble());
+    std::cout << "Out: " << out << std::endl;
+    assert(out == 0.1);
 }
