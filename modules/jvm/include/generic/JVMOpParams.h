@@ -82,6 +82,14 @@ namespace nigiri {
    			std::string result;
         };
 
+        class JVMOpParams_TypeParametersLookup : public JVMOpParams {
+        public:
+            ~JVMOpParams_TypeParametersLookup() = default;
+            std::shared_ptr<JVMType> target;
+   			std::vector<std::string> typeParameters;
+        };
+
+
     }
 }
 

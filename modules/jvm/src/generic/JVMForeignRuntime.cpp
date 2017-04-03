@@ -2,6 +2,7 @@
 #include <vector>
 #include <stdexcept>
 #include <algorithm>
+#include <cassert>
 #include "JVMForeignRuntime.h"
 #include "JVMPrimitives.h"
 #include "JVMOpParams.h"
@@ -393,6 +394,78 @@ namespace nigiri
 				typeCache.insert({name,params->type});
 			}
 			return params->type;
+		}
+
+        std::shared_ptr<FR_Type> JVMForeignRuntime::lookupGenericType(const std::string& name, std::initializer_list<std::shared_ptr<FR_Type>> typeParameters) {
+			auto type = lookupType(name);
+			if(typeParameters.size() == 0) {
+				return type;
+			}
+			auto jvmType = std::static_pointer_cast<JVMType>(type);
+			auto typeParametersLookup = std::make_shared<JVMOpParams_TypeParametersLookup>();
+			typeParametersLookup->target = jvmType;
+			JVMOp op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
+				if(LOG_JVMFOREIGNRUNTIME) {
+					std::cout << "Started type parameter lookup ..." << std::endl;
+				}
+				auto typeParametersLookup = std::static_pointer_cast<JVMOpParams_TypeParametersLookup>(opParams);
+				auto jvmType = typeParametersLookup->target;
+				jclass clazz = jvmType->getType();
+				jmethodID method_GetClass = env->GetMethodID(clazz,"getClass","()Ljava/lang/Class;");
+				assert(method_GetClass);
+				//jobject clazzMeta = env->CallObjectMethod(clazz,method_GetClass);
+				jclass clazzClass = env->GetObjectClass(clazz);
+				jmethodID method_getTypeParameters = env->GetMethodID(clazzClass,"getTypeParameters","()[Ljava/lang/reflect/TypeVariable;");
+				assert(method_getTypeParameters);
+				jobjectArray typeParameters = static_cast<jobjectArray>(env->CallObjectMethod(clazz,method_getTypeParameters));
+				assert(typeParameters);
+				jsize typeParametersCount = env->GetArrayLength(typeParameters);
+				std::cout << "Type parameters: " << typeParametersCount << std::endl;
+				jclass classTypeParameter = env->FindClass("java/lang/reflect/TypeVariable");
+				assert(classTypeParameter);
+				jmethodID method_getName = env->GetMethodID(classTypeParameter,"getName","()Ljava/lang/String;");
+				assert(method_getName);
+				jmethodID method_getBounds = env->GetMethodID(classTypeParameter,"getBounds","()[Ljava/lang/reflect/Type;");
+				assert(method_getBounds);
+
+				jclass classClass = env->FindClass("java/lang/Class");
+				assert(classClass);
+				jmethodID class_getName = env->GetMethodID(classClass,"getName","()Ljava/lang/String;");
+				assert(class_getName);
+				for(jsize i = 0; i < typeParametersCount; i++) {
+					jobject typeParameter = env->GetObjectArrayElement(typeParameters,i);
+					jstring name = static_cast<jstring>(env->CallObjectMethod(typeParameter,method_getName));
+					jboolean isNameCopy;
+					const char* nameNative = env->GetStringUTFChars(name,&isNameCopy);
+					std::cout << "\t Parameter: " << nameNative << std::endl;
+					if(isNameCopy == JNI_TRUE) {
+						env->ReleaseStringUTFChars(name,nameNative);
+					}
+					jobjectArray bounds = static_cast<jobjectArray>(env->CallObjectMethod(typeParameter,method_getBounds));
+					assert(bounds);
+					jsize boundsCount = env->GetArrayLength(bounds);
+					std::cout << "Bounds:" << std::endl;
+					for(jsize i = 0; i < boundsCount; i++) {
+						jobject bound = env->GetObjectArrayElement(bounds,i);
+						jstring boundClassName = static_cast<jstring>(env->CallObjectMethod(bound,class_getName));
+						jboolean isCopy;
+						const char* boundNameNative = env->GetStringUTFChars(boundClassName,&isCopy);
+						std::cout << "\t" << boundNameNative << std::endl;
+						if(isCopy == JNI_TRUE) {
+							env->ReleaseStringUTFChars(boundClassName,boundNameNative);
+						}
+					}
+				}
+			};
+			execute(op,typeParametersLookup);
+			return nullptr;
+			// 1. Type parameters - count and namespace
+			// 2. If count do not match with type count passed to method, return error
+			// 2. If count do match with type count passed to method, assign types to parameter type names in order as passed to method;
+
+			// 	1. field lookup:	if field has generic type (aka.: specified with parameter type name)
+			// 	2. method lookup
+
 		}
 
         std::string JVMForeignRuntime::prepareMethodSignature(const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,

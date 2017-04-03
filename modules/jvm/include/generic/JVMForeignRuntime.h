@@ -136,6 +136,7 @@ namespace nigiri {
             bool isRunning() override;
 
             std::shared_ptr<FR_Type> lookupType(const std::string& name) override;
+			std::shared_ptr<FR_Type> lookupGenericType(const std::string& name, std::initializer_list<std::shared_ptr<FR_Type>> typeParameters) override;
 
 			std::shared_ptr<FR_Field> lookupField(std::shared_ptr<FR_Type> targetType,
 	                                                        const std::string& name,

@@ -79,6 +79,7 @@ namespace nigiri {
         virtual void stop() = 0;
         virtual bool isRunning() = 0;
         virtual std::shared_ptr<FR_Type> lookupType(const std::string& name) = 0;
+        virtual std::shared_ptr<FR_Type> lookupGenericType(const std::string& name, std::initializer_list<std::shared_ptr<FR_Type>> typeParameters) = 0;
 
         virtual std::shared_ptr<FR_Method> lookupConstructor(std::shared_ptr<FR_Type> targetType,
             const std::vector<std::shared_ptr<FR_Type>>& parameterTypes) = 0;

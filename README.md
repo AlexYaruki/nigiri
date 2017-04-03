@@ -26,3 +26,4 @@ Aim is to provide one API for common operations (Launching, Type lookup, Code ex
 * Generics
 * Options
 * JVM: Inner classes
+* JVM: JNI do not respect private/protected/"default" scopes, additional checkup needed before scheduling work on JVM
