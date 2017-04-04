@@ -1,3 +1,9 @@
 build/
 .idea/
 Ideas.MD
+/x64/Debug/ZERO_CHECK/ZERO_CHECK.log
+/x64/Debug/RUN_TESTS/RUN_TESTS.log
+/x64/Debug/INSTALL/INSTALL.log
+/x64/Debug/ALL_BUILD/ALL_BUILD.log
+/nigiri.dir/Debug/nigiri.log
+/x64/Debug/ZERO_CHECK/ZERO_CHECK.log

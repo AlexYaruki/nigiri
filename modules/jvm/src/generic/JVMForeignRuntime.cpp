@@ -314,9 +314,8 @@ namespace nigiri
 				}
 				controlData.workOperation = JVMWorkOperation::Shutdown;
                 notifyWorkPrepared();
-                waitForWorkCompleted();
+				//waitForWorkCompleted(); - On Windows, stoping in destructor happens when worker thread is already destroyed/vanished
 				if(LOG_JVMFOREIGNRUNTIME) {
-					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread confirmation received" << std::endl;
 					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Joining JVM thread ..." << std::endl;
 				}
 				jvmThread.join();
@@ -892,12 +891,12 @@ namespace nigiri
 			auto op = [this](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams){
 				auto opParams_StringExtraction = std::static_pointer_cast<JVMOpParams_StringExtraction>(opParams);
 				jstring jvmStr = static_cast<jstring>(opParams_StringExtraction->target->getObject());
-				jsize length = env->GetStringLength(jvmStr);
-				char* data = new char[length];
-				jsize start = 0;
-				env->GetStringUTFRegion(jvmStr,start,length,data);
+				jboolean isCopy;
+				const char*  data = env->GetStringUTFChars(jvmStr,&isCopy);
 				opParams_StringExtraction->result = std::string(data);
-				delete[] data;
+				if (isCopy == JNI_TRUE) {
+					env->ReleaseStringUTFChars(jvmStr,data);
+				}
 			};
 			execute(op,params);
 			if(LOG_JVMFOREIGNRUNTIME) {

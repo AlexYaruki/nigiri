@@ -12,7 +12,7 @@ namespace nigiri {
         //TODO: Respect Java language scope
         const StaticMethodCaller& JVMType_Float::getStaticMethodCaller() {
             static StaticMethodCaller caller = [](auto env, auto targetType, auto method, auto jniParams) {
-                auto obj = env->CallStaticIntMethodA(targetType->getType(),method->getMethod(),jniParams);
+                auto obj = env->CallStaticFloatMethodA(targetType->getType(),method->getMethod(),jniParams);
                 auto jvmReturnType = std::static_pointer_cast<JVMType_Float>(method->getReturnType());
                 return std::make_shared<JVM_Float>(obj,jvmReturnType,targetType->getRuntimeId());
             };
