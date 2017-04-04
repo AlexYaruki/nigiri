@@ -44,6 +44,11 @@ namespace nigiri
 			return primitive;
 		}
 
+		void JVMType::setTypeParameterInfo(const std::map<jstring, std::vector<jobject>>& tPI)
+		{
+			typeParameterInfo = tPI;
+		}
+
 		//TODO: Respect Java language scope
 		const StaticMethodCaller& JVMType::getStaticMethodCaller() {
 			static StaticMethodCaller caller = [](auto env, auto targetType, auto method, auto jniParams) {
@@ -196,9 +201,7 @@ namespace nigiri
 			return type;
 		}
 
-
 		/////////////////////////////////////////////////////////////////////////
-
 
 		JVMForeignRuntime::JVMForeignRuntime(FR_Id id_){
 			id = id_;
@@ -395,11 +398,15 @@ namespace nigiri
 			return params->type;
 		}
 
+
+		// Currently, type can be "accidently" retrofited with generic information. 
+		// Should for example "ArrayList" and "ArrayList<Integer>" should be represented with same JVMType instace ?
+		// If yes, then must be decided how to distinct non-generic and generics calls and provide checks
         std::shared_ptr<FR_Type> JVMForeignRuntime::lookupGenericType(const std::string& name, std::initializer_list<std::shared_ptr<FR_Type>> typeParameters) {
-			auto type = lookupType(name);
 			if(typeParameters.size() == 0) {
-				return type;
+				return nullptr;
 			}
+			auto type = lookupType(name);
 			auto jvmType = std::static_pointer_cast<JVMType>(type);
 			auto typeParametersLookup = std::make_shared<JVMOpParams_TypeParametersLookup>();
 			typeParametersLookup->target = jvmType;
@@ -419,6 +426,10 @@ namespace nigiri
 				jobjectArray typeParameters = static_cast<jobjectArray>(env->CallObjectMethod(clazz,method_getTypeParameters));
 				assert(typeParameters);
 				jsize typeParametersCount = env->GetArrayLength(typeParameters);
+				if (typeParametersCount == 0) {
+					typeParametersLookup->target = nullptr;
+					return;
+				}
 				std::cout << "Type parameters: " << typeParametersCount << std::endl;
 				jclass classTypeParameter = env->FindClass("java/lang/reflect/TypeVariable");
 				assert(classTypeParameter);
@@ -431,33 +442,29 @@ namespace nigiri
 				assert(classClass);
 				jmethodID class_getName = env->GetMethodID(classClass,"getName","()Ljava/lang/String;");
 				assert(class_getName);
+				std::map<jstring, std::vector<jobject>> typeBoundsMap;
 				for(jsize i = 0; i < typeParametersCount; i++) {
 					jobject typeParameter = env->GetObjectArrayElement(typeParameters,i);
 					jstring name = static_cast<jstring>(env->CallObjectMethod(typeParameter,method_getName));
 					jboolean isNameCopy;
 					const char* nameNative = env->GetStringUTFChars(name,&isNameCopy);
-					std::cout << "\t Parameter: " << nameNative << std::endl;
 					if(isNameCopy == JNI_TRUE) {
 						env->ReleaseStringUTFChars(name,nameNative);
 					}
 					jobjectArray bounds = static_cast<jobjectArray>(env->CallObjectMethod(typeParameter,method_getBounds));
 					assert(bounds);
 					jsize boundsCount = env->GetArrayLength(bounds);
-					std::cout << "Bounds:" << std::endl;
+					std::vector<jobject> typeBounds;
 					for(jsize i = 0; i < boundsCount; i++) {
 						jobject bound = env->GetObjectArrayElement(bounds,i);
-						jstring boundClassName = static_cast<jstring>(env->CallObjectMethod(bound,class_getName));
-						jboolean isCopy;
-						const char* boundNameNative = env->GetStringUTFChars(boundClassName,&isCopy);
-						std::cout << "\t" << boundNameNative << std::endl;
-						if(isCopy == JNI_TRUE) {
-							env->ReleaseStringUTFChars(boundClassName,boundNameNative);
-						}
+						typeBounds.push_back(bound);
 					}
+					typeBoundsMap.emplace(name, typeBounds);
 				}
+				jvmType->setTypeParameterInfo(typeBoundsMap);
 			};
 			execute(op,typeParametersLookup);
-			return nullptr;
+			return typeParametersLookup->target;
 			// 1. Type parameters - count and namespace
 			// 2. If count do not match with type count passed to method, return error
 			// 2. If count do match with type count passed to method, assign types to parameter type names in order as passed to method;

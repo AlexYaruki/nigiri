@@ -30,9 +30,10 @@ else()
     message(FATAL_ERROR "Build type not supported: #{BUILD_TYPE}")
 endif()
 
+message(STATUS "Header files: ${HEADERS_FILES};${WIN32_HEADERS_FILES}")
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     source_group("src" FILES ${SOURCE_FILES})
-    source_group("include" FILES ${HEADERS})
+    source_group("include" FILES ${HEADERS_FILES})
 endif()
 
 if(NOT "${LIBRARIES}" STREQUAL "")

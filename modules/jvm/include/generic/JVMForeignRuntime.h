@@ -42,6 +42,7 @@ namespace nigiri {
 		    virtual const StaticFieldAccessor& getStaticFieldAccessor();
 		    virtual const InstanceFieldAccessor& getInstanceFieldAccessor();
 			bool isPrimitive();
+			void setTypeParameterInfo(const std::map<jstring, std::vector<jobject>>&);
 			jclass getType();
 
         protected:
@@ -59,6 +60,7 @@ namespace nigiri {
             bool primitiveInt64 = false;
             bool primitiveFloat = false;
             bool primitiveDouble = false;
+			std::map<jstring, std::vector<jobject>> typeParameterInfo;
         };
 
         class JVMMethod : public nigiri::FR_Method {
