@@ -3,13 +3,13 @@
 #include <nigiri.h>
 
 int main(){
-    auto jvm = nigiri::ForeignRuntimeManager::createRuntime("jvm");
-    assert(jvm->start({}));
+	auto jvm = nigiri::ForeignRuntimeManager::createRuntime("jvm");
+	assert(jvm->start({}));
 
-    auto jvmNumber = jvm->lookupType("java.lang.Number");
-    assert(jvmNumber);
-    auto jvmArrayList = jvm->lookupGenericType("java.util.ArrayList", {jvmNumber});
-    assert(jvmArrayList);
+	auto jvmNumber = jvm->lookupType("java.lang.Number");
+	assert(jvmNumber);
+	auto jvmArrayList = jvm->lookupGenericType("java.util.ArrayList", {jvmNumber});
+	assert(jvmArrayList);
 	auto jvmArrayList_constructor = jvm->lookupConstructor(jvmArrayList, {});
 	assert(jvmArrayList_constructor);
 	auto container = jvm->createObject(jvmArrayList, jvmArrayList_constructor, {});

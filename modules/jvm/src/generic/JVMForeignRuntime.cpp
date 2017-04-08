@@ -7,6 +7,7 @@
 #include "JVMPrimitives.h"
 #include "JVMOpParams.h"
 #include "JVMThread.h"
+#include "JVMInternalWrappers.h"
 
 namespace nigiri
 {
@@ -15,22 +16,22 @@ namespace nigiri
 
 		// JVMType /////////////////////////////////////////////////////////////
 
-        JVMType::JVMType(FR_Id id, jclass type_, std::string typeName, std::string sName) {
-            type = type_;
-            runtimeId = id;
+		JVMType::JVMType(FR_Id id, jclass type_, std::string typeName, std::string sName) {
+			type = type_;
+			runtimeId = id;
 			name = typeName;
 			signatureName = sName;
-        }
+		}
 
-        JVMType::~JVMType() {}
+		JVMType::~JVMType() {}
 
-        FR_Id JVMType::getRuntimeId() {
-            return runtimeId;
-        }
+		FR_Id JVMType::getRuntimeId() {
+			return runtimeId;
+		}
 
-        jclass JVMType::getType() {
-            return type;
-        }
+		jclass JVMType::getType() {
+			return type;
+		}
 
 		const std::string& JVMType::getName() {
 			return name;
@@ -44,7 +45,21 @@ namespace nigiri
 			return primitive;
 		}
 
-		void JVMType::setTypeParameterInfo(const std::map<jstring, std::vector<jobject>>& tPI)
+
+		bool JVMType::isGeneric() {
+			return false;
+		}
+
+
+		JVMGenericType::JVMGenericType(FR_Id id, jclass type_, std::string typeName, std::string sName) : JVMType(id,type_,typeName,sName) {
+			
+		}
+
+		bool JVMGenericType::isGeneric() {
+			return true;
+		}
+		
+		void JVMGenericType::setTypeParameterInfo(const std::map<std::string, std::vector<std::string>>& tPI)
 		{
 			typeParameterInfo = tPI;
 		}
@@ -102,32 +117,32 @@ namespace nigiri
 		}
 
 		std::tuple<bool,bool> JVMObjectBase::castToBool() {
-	        return std::tuple<bool,bool>();
-	    }
+			return std::tuple<bool,bool>();
+		}
 
 		std::tuple<bool,int8_t> JVMObjectBase::castToInt8() {
-	        return std::tuple<bool,int8_t>();
-	    }
+			return std::tuple<bool,int8_t>();
+		}
 
 		std::tuple<bool,int16_t> JVMObjectBase::castToInt16() {
-	        return std::tuple<bool,int16_t>();
-	    }
+			return std::tuple<bool,int16_t>();
+		}
 
 		std::tuple<bool,int32_t> JVMObjectBase::castToInt32() {
-	        return std::tuple<bool,int32_t>();
-	    }
+			return std::tuple<bool,int32_t>();
+		}
 
 		std::tuple<bool,int64_t> JVMObjectBase::castToInt64() {
-	        return std::tuple<bool,int64_t>();
-	    }
+			return std::tuple<bool,int64_t>();
+		}
 
 		std::tuple<bool,float> JVMObjectBase::castToFloat() {
 			return std::tuple<bool,float>();
 		}
 
-	    std::tuple<bool,double> JVMObjectBase::castToDouble() {
-	        return std::tuple<bool,double>();
-	    }
+		std::tuple<bool,double> JVMObjectBase::castToDouble() {
+			return std::tuple<bool,double>();
+		}
 
 		FR_Id JVMObjectBase::getRuntimeId(){
 			return runtimeId;
@@ -149,23 +164,23 @@ namespace nigiri
 
 		jvalue JVMObject::toValue() {
 			jvalue v;
-            v.l = obj;
-            return v;
+			v.l = obj;
+			return v;
 		}
 
 		/////////////////////////////////////////////////////////////////////////
 
 		// JVMMethod ////////////////////////////////////////////////////////////
 
-        JVMMethod::JVMMethod(FR_Id id, jmethodID method,std::shared_ptr<FR_Type> t, std::shared_ptr<FR_Type> rT): runtimeId(id), method(method), type(t), returnType(rT) {}
+		JVMMethod::JVMMethod(FR_Id id, jmethodID method,std::shared_ptr<FR_Type> t, std::shared_ptr<FR_Type> rT): runtimeId(id), method(method), type(t), returnType(rT) {}                                                                          
 
-        jmethodID JVMMethod::getMethod() {
-            return method;
-        }
+		jmethodID JVMMethod::getMethod() {
+			return method;
+		}
 
-        FR_Id JVMMethod::getRuntimeId() {
-            return runtimeId;
-        }
+		FR_Id JVMMethod::getRuntimeId() {
+			return runtimeId;
+		}
 
 		std::shared_ptr<FR_Type> JVMMethod::getType() {
 			return type;
@@ -231,6 +246,14 @@ namespace nigiri
 
 			controlData.stateMachine.addConnection(JVMState::WorkCompleted,JVMEvent::Work_Prepared,JVMState::WorkPrepared);
 			controlData.stateMachine.addConnection(JVMState::WorkCompleted, JVMEvent::Work_Idle, JVMState::Started);
+			typeCache.insert({ "byte",TYPE_INT8});
+			typeCache.insert({ "short",TYPE_INT16 });
+			typeCache.insert({ "int",TYPE_INT32 });
+			typeCache.insert({ "long",TYPE_INT64 });
+			typeCache.insert({ "float",TYPE_FLOAT });
+			typeCache.insert({ "double",TYPE_DOUBLE });
+			typeCache.insert({ "boolean",TYPE_BOOLEAN });
+			typeCache.insert({ "char",TYPE_CHAR });
 
 		}
 
@@ -243,7 +266,7 @@ namespace nigiri
 
 		void JVMForeignRuntime::waitForInitialization() {
 			if(LOG_JVMFOREIGNRUNTIME) {
-            	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Waiting for JVM startup ..." << std::endl;
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Waiting for JVM startup ..." << std::endl;
 			}
 			controlData.stateMachine.waitForStates({JVMState::Started,JVMState::ErrorShutdown});
 			if(LOG_JVMFOREIGNRUNTIME) {
@@ -253,7 +276,7 @@ namespace nigiri
 
 		bool JVMForeignRuntime::start(const std::initializer_list<std::string>& resources) {
 			if(LOG_JVMFOREIGNRUNTIME) {
-            	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Starting JVM ..." << std::endl;
+				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Starting JVM ..." << std::endl;
 			}
 			jvmThread = std::thread([&resources](ControlData* controlData_)
 			{
@@ -273,7 +296,7 @@ namespace nigiri
 				{
 					if(LOG_JVMTHREAD) {
 						std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - JVM Created" << std::endl;
-					    std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Starting work loop" << std::endl;
+						std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread - Starting work loop" << std::endl;
 					}
 					jvmThread.workLoop();
 				}
@@ -286,21 +309,21 @@ namespace nigiri
 				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMThread started" << std::endl;
 			}
 			waitForInitialization();
-            if(controlData.stateMachine.getState() == JVMState::Started){
+			if(controlData.stateMachine.getState() == JVMState::Started){
 				if(LOG_JVMFOREIGNRUNTIME) {
 					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM is work-ready" << std::endl;
 				}
 				return true;
-            } else {
+			} else {
 				if(LOG_JVMFOREIGNRUNTIME) {
-                	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM could not be started" << std::endl;
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVM could not be started" << std::endl;
 				}
 				jvmThread.join();
-                return false;
-            }
+				return false;
+			}
 		}
 
-        bool JVMForeignRuntime::isRunning() {
+		bool JVMForeignRuntime::isRunning() {
 			JVMState state = controlData.stateMachine.getState();
 			return (state != JVMState::Created) &&
 				   (state != JVMState::ErrorShutdown) &&
@@ -316,7 +339,7 @@ namespace nigiri
 					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is running" << std::endl;
 				}
 				controlData.workOperation = JVMWorkOperation::Shutdown;
-                notifyWorkPrepared();
+				notifyWorkPrepared();
 				//waitForWorkCompleted(); - On Windows, stoping in destructor happens when worker thread is already destroyed/vanished
 				if(LOG_JVMFOREIGNRUNTIME) {
 					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Joining JVM thread ..." << std::endl;
@@ -327,7 +350,7 @@ namespace nigiri
 				}
 			} else {
 				if(LOG_JVMFOREIGNRUNTIME) {
-                	std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is not running" << std::endl;
+					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - JVMThread is not running" << std::endl;
 				}
 			}
 		}
@@ -340,24 +363,6 @@ namespace nigiri
 			if(LOG_JVMFOREIGNRUNTIME) {
 				std::cout << ">>>> DEBUG: Looking for type: (" << name << ")" << std::endl;
 			}
-			if(name.compare("byte") == 0){
-                return TYPE_INT8;
-            } else if(name.compare("short") == 0){
-                return TYPE_INT16;
-            } else if(name.compare("int") == 0){
-                return TYPE_INT32;
-            } else if(name.compare("long") == 0){
-                return TYPE_INT64;
-            } else if(name.compare("float") == 0){
-                return TYPE_FLOAT;
-            } else if(name.compare("double") == 0){
-                return TYPE_DOUBLE;
-            } else if(name.compare("boolean") == 0){
-                return TYPE_BOOLEAN;
-            } else if(name.compare("char") == 0){
-                return TYPE_CHAR;
-            }
-
 			auto search = typeCache.find(name);
 			if(search != typeCache.end()) {
 				return search->second;
@@ -368,7 +373,7 @@ namespace nigiri
 			std::shared_ptr<JVMOpParams_TypeLookup> params = std::make_shared<JVMOpParams_TypeLookup>();
 
 			params->typeName = name;
-            auto& localId = id;
+			auto& localId = id;
 			JVMOp op = [localId](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
 				if(LOG_JVMFOREIGNRUNTIME) {
 					std::cout << "Started type lookup ..." << std::endl;
@@ -379,13 +384,47 @@ namespace nigiri
 				jclass type = env->FindClass(javaTypeName.c_str());
 				if(type != nullptr) {
 					javaTypeName = "L" + javaTypeName + ";";
-					typeLookupParams->type = std::make_shared<JVMType>(localId,type,typeLookupParams->typeName,javaTypeName);
 					if(LOG_JVMFOREIGNRUNTIME) {
 						std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") found" << std::endl;
 					}
+					jmethodID method_GetClass = env->GetMethodID(type, "getClass", "()Ljava/lang/Class;");
+					assert(method_GetClass);
+					auto type_Class = env->CallObjectMethod(type, method_GetClass);
+					jclass clazzClass = env->GetObjectClass(type_Class);
+					assert(clazzClass);
+					jmethodID method_getTypeParameters = env->GetMethodID(clazzClass, "getTypeParameters", "()[Ljava/lang/reflect/TypeVariable;");
+					assert(method_getTypeParameters);
+					jobjectArray typeParameters = static_cast<jobjectArray>(env->CallObjectMethod(type_Class, method_getTypeParameters));
+					assert(typeParameters);
+					jsize typeParametersCount = env->GetArrayLength(typeParameters);
+					if (typeParametersCount == 0) {
+						typeLookupParams->type = std::make_shared<JVMType>(localId, type, typeLookupParams->typeName,javaTypeName);
+						return;
+					}
+					jclass classClass = env->FindClass("java/lang/Class");
+					assert(classClass);
+					jmethodID class_getName = env->GetMethodID(classClass, "getName", "()Ljava/lang/String;");
+					assert(class_getName);
+					std::map<std::string, std::vector<std::string>> typeBoundsMap;
+					for (jsize i = 0; i < typeParametersCount; i++) {
+						wrappers::TypeVariable typeParameter(env, env->GetObjectArrayElement(typeParameters, i));
+						std::string name = typeParameter.getName();
+						jobjectArray bounds = typeParameter.getBounds();
+						jsize boundsCount = env->GetArrayLength(bounds);
+						std::vector<std::string> typeBounds;
+						for (jsize i = 0; i < boundsCount; i++) {
+							wrappers::Type type(env, env->GetObjectArrayElement(bounds, i));
+							typeBounds.push_back(std::move(type.getTypeName()));
+						}
+						typeBoundsMap.emplace(name, typeBounds);
+					}
+					auto jvmGenericType = std::make_shared<JVMGenericType>(localId, type, typeLookupParams->typeName, javaTypeName);
+					jvmGenericType->setTypeParameterInfo(typeBoundsMap);
+					typeLookupParams->type = jvmGenericType;
+
 				} else {
 					if(LOG_JVMFOREIGNRUNTIME) {
-	                	std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") not found" << std::endl;
+						std::cout << ">>>> DEBUG: Type (" << typeLookupParams->typeName << ") not found" << std::endl;
 					}
 					typeLookupParams->type = nullptr;
 				}
@@ -402,94 +441,115 @@ namespace nigiri
 		// Currently, type can be "accidently" retrofited with generic information. 
 		// Should for example "ArrayList" and "ArrayList<Integer>" should be represented with same JVMType instace ?
 		// If yes, then must be decided how to distinct non-generic and generics calls and provide checks
-        std::shared_ptr<FR_Type> JVMForeignRuntime::lookupGenericType(const std::string& name, std::initializer_list<std::shared_ptr<FR_Type>> typeParameters) {
-			if(typeParameters.size() == 0) {
-				return nullptr;
-			}
-			auto type = lookupType(name);
-			auto jvmType = std::static_pointer_cast<JVMType>(type);
-			auto typeParametersLookup = std::make_shared<JVMOpParams_TypeParametersLookup>();
-			typeParametersLookup->target = jvmType;
-			JVMOp op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
-				if(LOG_JVMFOREIGNRUNTIME) {
-					std::cout << "Started type parameter lookup ..." << std::endl;
-				}
-				auto typeParametersLookup = std::static_pointer_cast<JVMOpParams_TypeParametersLookup>(opParams);
-				auto jvmType = typeParametersLookup->target;
-				jclass clazz = jvmType->getType();
-				jmethodID method_GetClass = env->GetMethodID(clazz,"getClass","()Ljava/lang/Class;");
-				assert(method_GetClass);
-				//jobject clazzMeta = env->CallObjectMethod(clazz,method_GetClass);
-				jclass clazzClass = env->GetObjectClass(clazz);
-				jmethodID method_getTypeParameters = env->GetMethodID(clazzClass,"getTypeParameters","()[Ljava/lang/reflect/TypeVariable;");
-				assert(method_getTypeParameters);
-				jobjectArray typeParameters = static_cast<jobjectArray>(env->CallObjectMethod(clazz,method_getTypeParameters));
-				assert(typeParameters);
-				jsize typeParametersCount = env->GetArrayLength(typeParameters);
-				if (typeParametersCount == 0) {
-					typeParametersLookup->target = nullptr;
-					return;
-				}
-				std::cout << "Type parameters: " << typeParametersCount << std::endl;
-				jclass classTypeParameter = env->FindClass("java/lang/reflect/TypeVariable");
-				assert(classTypeParameter);
-				jmethodID method_getName = env->GetMethodID(classTypeParameter,"getName","()Ljava/lang/String;");
-				assert(method_getName);
-				jmethodID method_getBounds = env->GetMethodID(classTypeParameter,"getBounds","()[Ljava/lang/reflect/Type;");
-				assert(method_getBounds);
+		
+		// If class lookup without explicit type parameters, calls to generic methods/fields checked against type bounds
+		// If class lookup with explicit type parameters, calls to generic methods/fields checked against provided type parameters
+		// Behind, Generic and Non-generic versions of class will have handle to barebone class.
 
-				jclass classClass = env->FindClass("java/lang/Class");
-				assert(classClass);
-				jmethodID class_getName = env->GetMethodID(classClass,"getName","()Ljava/lang/String;");
-				assert(class_getName);
-				std::map<jstring, std::vector<jobject>> typeBoundsMap;
-				for(jsize i = 0; i < typeParametersCount; i++) {
-					jobject typeParameter = env->GetObjectArrayElement(typeParameters,i);
-					jstring name = static_cast<jstring>(env->CallObjectMethod(typeParameter,method_getName));
-					jboolean isNameCopy;
-					const char* nameNative = env->GetStringUTFChars(name,&isNameCopy);
-					if(isNameCopy == JNI_TRUE) {
-						env->ReleaseStringUTFChars(name,nameNative);
-					}
-					jobjectArray bounds = static_cast<jobjectArray>(env->CallObjectMethod(typeParameter,method_getBounds));
-					assert(bounds);
-					jsize boundsCount = env->GetArrayLength(bounds);
-					std::vector<jobject> typeBounds;
-					for(jsize i = 0; i < boundsCount; i++) {
-						jobject bound = env->GetObjectArrayElement(bounds,i);
-						typeBounds.push_back(bound);
-					}
-					typeBoundsMap.emplace(name, typeBounds);
-				}
-				jvmType->setTypeParameterInfo(typeBoundsMap);
-			};
-			execute(op,typeParametersLookup);
-			return typeParametersLookup->target;
-			// 1. Type parameters - count and namespace
-			// 2. If count do not match with type count passed to method, return error
-			// 2. If count do match with type count passed to method, assign types to parameter type names in order as passed to method;
+		// Generic handling mode: JLS or Flexible
+		
+		// Mode_JLS - As defined in Java Language Specification, for example: 
+		// void work(List<Object> items); 
+		// List<String> messages = new ArrayList<String>();
+		// //COMPILE_ERROR work(messages)
+		
+		// Mode_Flexible - Takes type parameter hierarchy into consideration, for example: 
+		// String message = "Test Message";
+		// Object obj = message; "String" extends "Object"
+		//		>>>	Then >>>
+		// void work(List<Object> items); 
+		// List<String> messages = new ArrayList<String>();
+		// work(messages) // Valid in this mode
 
-			// 	1. field lookup:	if field has generic type (aka.: specified with parameter type name)
-			// 	2. method lookup
 
+		std::shared_ptr<FR_Type> JVMForeignRuntime::lookupGenericType(const std::string& name, std::initializer_list<std::shared_ptr<FR_Type>> typeParameters) {
+			//if(typeParameters.size() == 0) {
+			//	return nullptr;
+			//}
+			//auto type = lookupType(name);
+			//auto jvmType = std::static_pointer_cast<JVMType>(type);
+			//auto typeParametersLookup = std::make_shared<JVMOpParams_TypeParametersLookup>();
+			//typeParametersLookup->target = jvmType;
+			//JVMOp op = [](JNIEnv* env,std::shared_ptr<JVMOpParams> opParams) {
+			//	if(LOG_JVMFOREIGNRUNTIME) {
+			//		std::cout << "Started type parameter lookup ..." << std::endl;
+			//	}
+			//	auto typeParametersLookup = std::static_pointer_cast<JVMOpParams_TypeParametersLookup>(opParams);
+			//	auto jvmType = typeParametersLookup->target;
+			//	jclass clazz = jvmType->getType();
+			//	jmethodID method_GetClass = env->GetMethodID(clazz,"getClass","()Ljava/lang/Class;");
+			//	assert(method_GetClass);
+			//	jclass clazzClass = env->GetObjectClass(clazz);
+			//	jmethodID method_getTypeParameters = env->GetMethodID(clazzClass,"getTypeParameters","()[Ljava/lang/reflect/TypeVariable;");
+			//	assert(method_getTypeParameters);
+			//	jobjectArray typeParameters = static_cast<jobjectArray>(env->CallObjectMethod(clazz,method_getTypeParameters));
+			//	assert(typeParameters);
+			//	jsize typeParametersCount = env->GetArrayLength(typeParameters);
+			//	if (typeParametersCount == 0) {
+			//		typeParametersLookup->target = nullptr;
+			//		return;
+			//	}
+			//	std::cout << "Type parameters: " << typeParametersCount << std::endl;
+			//	jclass classTypeParameter = env->FindClass("java/lang/reflect/TypeVariable");
+			//	assert(classTypeParameter);
+			//	jmethodID method_getName = env->GetMethodID(classTypeParameter,"getName","()Ljava/lang/String;");
+			//	assert(method_getName);
+			//	jmethodID method_getBounds = env->GetMethodID(classTypeParameter,"getBounds","()[Ljava/lang/reflect/Type;");
+			//	assert(method_getBounds);
+
+			//	jclass classClass = env->FindClass("java/lang/Class");
+			//	assert(classClass);
+			//	jmethodID class_getName = env->GetMethodID(classClass,"getName","()Ljava/lang/String;");
+			//	assert(class_getName);
+			//	std::map<jstring, std::vector<jobject>> typeBoundsMap;
+			//	for(jsize i = 0; i < typeParametersCount; i++) {
+			//		jobject typeParameter = env->GetObjectArrayElement(typeParameters,i);
+			//		jstring name = static_cast<jstring>(env->CallObjectMethod(typeParameter,method_getName));
+			//		jboolean isNameCopy;
+			//		const char* nameNative = env->GetStringUTFChars(name,&isNameCopy);
+			//		if(isNameCopy == JNI_TRUE) {
+			//			env->ReleaseStringUTFChars(name,nameNative);
+			//		}
+			//		jobjectArray bounds = static_cast<jobjectArray>(env->CallObjectMethod(typeParameter,method_getBounds));
+			//		assert(bounds);
+			//		jsize boundsCount = env->GetArrayLength(bounds);
+			//		std::vector<jobject> typeBounds;
+			//		for(jsize i = 0; i < boundsCount; i++) {
+			//			jobject bound = env->GetObjectArrayElement(bounds,i);
+			//			typeBounds.push_back(bound);
+			//		}
+			//		typeBoundsMap.emplace(name, typeBounds);
+			//	}
+			//	auto jvmGenericType = std::make_shared<JVMGenericType>(jvmType->getRuntimeId(), jvmType->getType(), jvmType->getName(), jvmType->getSignatureName());
+			//	jvmGenericType->setTypeParameterInfo(typeBoundsMap);
+			//	typeParametersLookup->target = jvmGenericType;
+			//};
+			//execute(op,typeParametersLookup);
+			//return typeParametersLookup->target;
+			//// 1. Type parameters - count and namespace
+			//// 2. If count do not match with type count passed to method, return error
+			//// 2. If count do match with type count passed to method, assign types to parameter type names in order as passed to method;
+
+			//// 	1. field lookup:	if field has generic type (aka.: specified with parameter type name)
+			//// 	2. method lookup
+			return nullptr;
 		}
 
-        std::string JVMForeignRuntime::prepareMethodSignature(const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
-                                           const std::shared_ptr<FR_Type> returnType){
-            std::string signature;
-            signature.append("(");
-            for(std::vector<std::shared_ptr<FR_Type>>::size_type i = 0; i < parametersTypes.size(); i++) {
-                auto jvmType = std::static_pointer_cast<JVMType>(parametersTypes[i]);
+		std::string JVMForeignRuntime::prepareMethodSignature(const std::vector<std::shared_ptr<FR_Type>> &parametersTypes, const std::shared_ptr<FR_Type> returnType){
+			std::string signature;
+			signature.append("(");
+			for(std::vector<std::shared_ptr<FR_Type>>::size_type i = 0; i < parametersTypes.size(); i++) {
+				auto jvmType = std::static_pointer_cast<JVMType>(parametersTypes[i]);
 				signature.append(jvmType->getSignatureName());
-            }
+			}
 			signature.append(")");
 			if(returnType != nullptr) {
 				signature.append(std::static_pointer_cast<JVMType>(returnType)->getSignatureName());
 			} else {
 				signature.append("V");
 			}
-            return signature;
-        }
+			return signature;
+		}
 
 		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupConstructor(std::shared_ptr<FR_Type> targetType, const std::vector<std::shared_ptr<FR_Type>>& parametersTypes) {
 			check(targetType);
@@ -571,9 +631,7 @@ namespace nigiri
 			return params->result;
 		}
 
-		std::shared_ptr<FR_Field> JVMForeignRuntime::lookupField(std::shared_ptr<FR_Type> targetType,
-														const std::string& name,
-														const std::shared_ptr<FR_Type> fieldType) {
+		std::shared_ptr<FR_Field> JVMForeignRuntime::lookupField(std::shared_ptr<FR_Type> targetType, const std::string& name, const std::shared_ptr<FR_Type> fieldType) {
 			auto params = std::make_shared<JVMOpParams_FieldLookup>();
 			params->targetType = targetType;
 			params->name = name;
@@ -596,14 +654,11 @@ namespace nigiri
 			return params->field;
 		}
 
-		std::shared_ptr<FR_Field> JVMForeignRuntime::lookupField(std::shared_ptr<FR_Object> targetObject,
-														const std::string& name,
-														const std::shared_ptr<FR_Type> fieldType) {
+		std::shared_ptr<FR_Field> JVMForeignRuntime::lookupField(std::shared_ptr<FR_Object> targetObject, const std::string& name, const std::shared_ptr<FR_Type> fieldType) {
 			return nullptr;
 		}
 
-		std::shared_ptr<FR_Object> JVMForeignRuntime::getField(std::shared_ptr<FR_Type> targetType,
-													std::shared_ptr<FR_Field> field) {
+		std::shared_ptr<FR_Object> JVMForeignRuntime::getField(std::shared_ptr<FR_Type> targetType, std::shared_ptr<FR_Field> field) {
 			auto params = std::make_shared<JVMOpParams_StaticFieldAccess>();
 			params->targetType = targetType;
 			params->field = field;
@@ -619,15 +674,11 @@ namespace nigiri
 			return params->result;
 		}
 
-		std::shared_ptr<FR_Object> JVMForeignRuntime::getField(std::shared_ptr<FR_Object> targetObject,
-													std::shared_ptr<FR_Field> field) {
+		std::shared_ptr<FR_Object> JVMForeignRuntime::getField(std::shared_ptr<FR_Object> targetObject, std::shared_ptr<FR_Field> field) {
 			return nullptr;
 		}
 
-		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupMethod(std::shared_ptr<FR_Object> targetObject,
-			const std::string &name,
-			const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
-			const std::shared_ptr<FR_Type> returnType) {
+		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupMethod(std::shared_ptr<FR_Object> targetObject, const std::string &name, const std::vector<std::shared_ptr<FR_Type>> &parametersTypes, const std::shared_ptr<FR_Type> returnType) {
 				check(targetObject);
 				for(auto parameterType : parametersTypes) {
 					check(parameterType);
@@ -665,10 +716,7 @@ namespace nigiri
 				return std::make_shared<JVMMethod>(getId(),params->method,targetObject->getType(), returnType);
 			}
 
-		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupMethod(std::shared_ptr<FR_Type> targetType,
-				const std::string &name,
-				const std::vector<std::shared_ptr<FR_Type>> &parametersTypes,
-				const std::shared_ptr<FR_Type> returnType) {
+		std::shared_ptr<FR_Method> JVMForeignRuntime::lookupMethod(std::shared_ptr<FR_Type> targetType, const std::string &name, const std::vector<std::shared_ptr<FR_Type>> &parametersTypes, const std::shared_ptr<FR_Type> returnType) {
 					check(targetType);
 					for(auto parameterType : parametersTypes) {
 						check(parameterType);
@@ -706,9 +754,7 @@ namespace nigiri
 					return std::make_shared<JVMMethod>(getId(),params->method,targetType,returnType);
 				}
 
-		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Object> targetObject,
-					std::shared_ptr<FR_Method> method,
-					const std::vector<std::shared_ptr<FR_Object>> &parameters) {
+		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Object> targetObject, std::shared_ptr<FR_Method> method, const std::vector<std::shared_ptr<FR_Object>> &parameters) {
 			check(targetObject);
 			check(method);
 			for(auto parameter : parameters) {
@@ -750,9 +796,7 @@ namespace nigiri
 			return params->result;
 		}
 
-		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Type> targetType,
-															std::shared_ptr<FR_Method> method,
-															const std::vector<std::shared_ptr<FR_Object>> &parameters) {
+		std::shared_ptr<nigiri::FR_Object> JVMForeignRuntime::call(std::shared_ptr<FR_Type> targetType, std::shared_ptr<FR_Method> method, const std::vector<std::shared_ptr<FR_Object>> &parameters) {
 			check(targetType);
 			check(method);
 			for(auto parameter : parameters) {
@@ -802,17 +846,17 @@ namespace nigiri
 				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Work prepared" << std::endl;
 			}
 			controlData.stateMachine.submitEvent(JVMEvent::Work_Prepared);
-        }
+		}
 
 		void JVMForeignRuntime::waitForWorkCompleted() {
-            controlData.stateMachine.waitForState(JVMState::WorkCompleted);
+			controlData.stateMachine.waitForState(JVMState::WorkCompleted);
 			if(LOG_JVMFOREIGNRUNTIME) {
 				std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - Work completed" << std::endl;
 			}
 			controlData.stateMachine.submitEvent(JVMEvent::Work_Idle);
-         }
+		 }
 
-			bool JVMForeignRuntime::isAvailable(){
+		bool JVMForeignRuntime::isAvailable(){
 			JVMState state = controlData.stateMachine.getState();
 			if(state == JVMState::Started || state == JVMState::WorkCompleted) {
 				if(LOG_JVMFOREIGNRUNTIME) {
@@ -824,7 +868,7 @@ namespace nigiri
 					std::cout << "[" << getThreadIdString(std::this_thread::get_id()) << "] JVMForeignRuntime - System not ready for work, current state: " << getStateString(state) << std::endl;
 				}
 				return false;
-		 	}
+			}
 		}
 
 		JVMForeignRuntime::ControlData::~ControlData() {
@@ -953,10 +997,10 @@ namespace nigiri
 		}
 
 		std::string getThreadIdString(std::thread::id tid){
-	        static std::hash<std::thread::id> hasher;
-	        auto hash = hasher(tid);
-	        return std::to_string(hash);
-	    }
+			static std::hash<std::thread::id> hasher;
+			auto hash = hasher(tid);
+			return std::to_string(hash);
+		}
 
 	}
 }
