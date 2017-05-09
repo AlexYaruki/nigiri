@@ -28,6 +28,7 @@ Aim is to provide one API for common operations (Launching, Type lookup, Code ex
 * One thread use synchronisation (for now)
 * Internal Type/Constructor/Method/Field cache (probably only JVM specific)
 * Access to path of resources loaded with runtime (JAR,DLL,JS, etc...)
+* Execution modes: Thread or Process (required check if runtime support requested mode)
 * JVM: Use of java.lang.Class for accessing required information (wrapper)
 * JVM: Generics
 * JVM: Inner classes
