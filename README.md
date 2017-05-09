@@ -23,7 +23,12 @@ Aim is to provide one API for common operations (Launching, Type lookup, Code ex
 ### TODO:
 
 * Arrays
-* Generics
 * Options
+* Optional logging ( environment variable, option or other)
+* One thread use synchronisation (for now)
+* Internal Type/Constructor/Method/Field cache (probably only JVM specific)
+* Access to path of resources loaded with runtime (JAR,DLL,JS, etc...)
+* JVM: Use of java.lang.Class for accessing required information (wrapper)
+* JVM: Generics
 * JVM: Inner classes
 * JVM: JNI do not respect private/protected/"default" scopes, additional checkup needed before scheduling work on JVM
