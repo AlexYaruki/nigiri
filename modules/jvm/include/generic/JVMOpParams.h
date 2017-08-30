@@ -75,6 +75,19 @@ namespace nigiri {
    			std::shared_ptr<FR_Object> result;
         };
 
+        class JVMOpParams_ObjectRelease : public JVMOpParams {
+        public:
+            ~JVMOpParams_ObjectRelease() = default;
+            const FR_Object* obj;
+        };
+        
+        class JVMOpParams_TypeRelease : public JVMOpParams {
+        public:
+            ~JVMOpParams_TypeRelease() = default;
+            const FR_Type* type;
+        };
+
+        
         class JVMOpParams_StringExtraction : public JVMOpParams {
         public:
             ~JVMOpParams_StringExtraction() = default;

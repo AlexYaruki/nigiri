@@ -1,5 +1,6 @@
 #include <nigiri.h>
 #include <cassert>
+#include <iostream>
 
 int main() {
     bool jvmAvailable = nigiri::ForeignRuntimeManager::isCategoryAvailable("jvm");
